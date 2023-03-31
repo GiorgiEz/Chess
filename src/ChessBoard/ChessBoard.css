@@ -1,11 +1,8 @@
-.chessboard {
-    padding: 0.7vw;
-    margin-top: 1vh;
-    border: 6.5vw solid #020a86;
+canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border: 5px solid black;
 }
 
-canvas {
-    display: block;
-    margin: auto;
-    border: 1px solid black;
-}
