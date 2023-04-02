@@ -11,7 +11,7 @@ interface State {
     mousePosition: { x: number; y: number; };
 }
 
-export class MoveImages extends React.Component<Props, State> {
+export class MovePieces extends React.Component<Props, State> {
     canvasRef = React.createRef<HTMLCanvasElement>();
 
     state: State = {
