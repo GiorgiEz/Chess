@@ -1,6 +1,6 @@
 import React, {useRef, useEffect} from 'react';
 import './ChessBoard.css';
-import {MoveImages} from "./MovePeaces"
+import {MovePieces} from "./MovePieces"
 
 import whitePawn from '../assets/white-pawn.png';
 import whiteRook from '../assets/white-rook.png';
@@ -72,7 +72,7 @@ export const ChessBoard = () => {
                 width={600}
                 height={600}
             />
-            <MoveImages pieces={pieces} />
+            <MovePieces pieces={pieces} />
         </div>
     );
 };
