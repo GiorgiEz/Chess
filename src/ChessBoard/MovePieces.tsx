@@ -1,58 +1,45 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import "./ChessBoard.css"
 
 interface Props {
     pieces: {src: string, x: number, y:number, color: "white" | "black", name: string}[];
-    squareSize: number;
-    canvasSize: number;
-    imageSize: number;
 }
 
-interface State {
-    positions: { x: number; y: number }[];
-}
+export const MovePieces: React.FC<Props> = ({pieces}) => {
+    const canvasRef = React.createRef<HTMLCanvasElement>();
+    const squareSize = 75;
+    const canvasSize = 600;
+    const imageSize = 50;
+    const pieceImages: HTMLImageElement[] = []
+    let draggingIndex: number = -1
+    let mousePosition = {x: 0, y: 0}
+    const color_name_array = pieces.map(({color, name}) => ({name, color}))
 
-export class MovePieces extends React.Component<Props, State> {
-    canvasRef = React.createRef<HTMLCanvasElement>();
-    pieceImages: HTMLImageElement[] = []
-    isDragging: boolean = false
-    draggingIndex: number = -1
-    mousePosition = {x: 0, y: 0}
-    initialPositions = this.props.pieces.map(({x, y}) => ({x,y}))
-    colorAndNameArray = this.props.pieces.map(({color, name}) => ({name, color}))
-
-    public constructor(props: Props) {
-        super(props);
-
-        for (let i = 0; i < this.props.pieces.length; i++) {
-            const image = new Image();
-            image.src = this.props.pieces[i].src;
-            this.pieceImages.push(image)
-        }
+    for (let i = 0; i < pieces.length; i++) {
+        const image = new Image();
+        image.src = pieces[i].src;
+        pieceImages.push(image)
     }
-
-    state: State = {
-        positions: this.props.pieces.map(({x,y}) => ({ x, y })),
-    }
-
-    componentDidMount() {
-        const canvas = this.canvasRef.current!;
+    
+    const [positions, setPositions] = useState(pieces.map(({x,y}) => ({x, y})))
+    
+    useEffect(() => {
+        const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
-        window.addEventListener("mousemove", this.handleMouseMove);
-        canvas.addEventListener("mousemove", this.onMouseMove);
-        canvas.addEventListener("mouseup", this.onMouseUp);
-        this.draw_pieces(ctx);
-    }
+        window.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("mousemove", onMouseMove);
+        canvas.addEventListener("mouseup", onMouseUp);
+        draw_pieces(ctx);
+        
+        return (() =>{
+            canvas.removeEventListener("mousemove", onMouseMove);
+            canvas.removeEventListener("mouseup", onMouseUp);
+            window.removeEventListener("mousemove", handleMouseMove)
+        })
+    }, [canvasRef])
 
-    componentWillUnmount() {
-        const canvas = this.canvasRef.current!;
-        canvas.removeEventListener("mousemove", this.onMouseMove);
-        canvas.removeEventListener("mouseup", this.onMouseUp);
-        window.removeEventListener("mousemove", this.handleMouseMove)
-    }
-
-    getMousePositions(event: any){
-        const canvas = this.canvasRef.current!;
+    function getMousePositions(event: any){
+        const canvas = canvasRef.current!;
         const { left, top } = canvas.getBoundingClientRect();
         return {
             x: event.clientX - left,
@@ -60,92 +47,231 @@ export class MovePieces extends React.Component<Props, State> {
         }
     }
 
-    onMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        const mousePositions = this.getMousePositions(event)
-        const index = this.getIndexAtPosition(mousePositions.x, mousePositions.y);
+    function onMouseDown (event: React.MouseEvent<HTMLCanvasElement>) {
+        const mousePositions = getMousePositions(event)
+        const index = getIndexAtPosition(mousePositions.x, mousePositions.y);
         if (index !== -1) {
-            this.isDragging = true
-            this.draggingIndex = index
-            this.initialPositions[index] = { ...this.state.positions[index] };
-            window.addEventListener("pointermove", this.onMouseMove);
-            window.addEventListener("pointerup", this.onMouseUp);
-            this.mousePosition = { x: mousePositions.x, y: mousePositions.y };
+            draggingIndex = index
+            mousePosition = {x: mousePositions.x, y: mousePositions.y};
         }
     }
 
-    onMouseUp = () => {
-        this.isDragging = false
-        this.draggingIndex = -1
-        window.removeEventListener("pointermove", this.onMouseMove);
-        window.removeEventListener("pointerup", this.onMouseUp);
+    const onMouseUp = () => {
+        adjustPiecePosition()
+        draggingIndex = -1
     }
 
-    handleMouseMove = (event: MouseEvent) => {
-        const mousePositions = this.getMousePositions(event)
+    const handleMouseMove = (event: MouseEvent) => {
+        const mousePositions = getMousePositions(event)
         let x = mousePositions.x
         let y = mousePositions.y
         //Can't move pieces outside of canvas
-        const line = this.props.canvasSize - this.props.imageSize
-        if (x >= line) x = line
+        const border = canvasSize - imageSize
+        if (x >= border) x = border
         if (x <= 0) x = 0
         if (y <= 0) y = 0
-        if (y >= line) y = line
-        this.mousePosition = { x: x, y: y };
+        if (y >= border) y = border
+        mousePosition = { x: x, y: y };
     }
 
-    onMouseMove = (event: MouseEvent) => {
-        const mousePositions = this.getMousePositions(event)
-        let x = mousePositions.x
-        let y = mousePositions.y
-        const i = this.draggingIndex
-        // Update position of the piece to be in the middle of the square
-        for (let xPos = 0; xPos < this.props.canvasSize; xPos += this.props.squareSize){
-            for (let yPos = 0; yPos < this.props.canvasSize; yPos += this.props.squareSize){
-                if (this.mousePosition.x >= xPos &&
-                    this.mousePosition.x <= xPos + this.props.squareSize &&
-                    this.mousePosition.y >= yPos &&
-                    this.mousePosition.y <= yPos + this.props.squareSize){
-                        x = xPos + 12.5
-                        y = yPos + 12.5
+    function isPieceOnSquare(x: number, y: number) {
+        return positions.some(pos => pos.x === x && pos.y === y);
+    }
+
+    const adjustPiecePosition = () => {
+        let nextSquare = squareSize;
+        const pieceImageShift = (squareSize - imageSize) / 2;
+        let x = mousePosition.x
+        let y = mousePosition.y
+        const i = draggingIndex
+
+        for (let square = 0; square !== squareSize * 8; square += squareSize) {
+            if (x >= square && x <= nextSquare) x = square + pieceImageShift;
+            if (y < nextSquare && y >= square) y = square + pieceImageShift;
+            nextSquare += squareSize;
+        }
+
+        if (i !== -1) {
+            const currX = positions[i].x;
+            const currY = positions[i].y;
+
+            if (color_name_array[i].name === "pawn") {
+                const white = color_name_array[i].color === "white"
+                //find in between which x positions the dragging pawn is
+                let posXStart = currX - pieceImageShift
+                let posXEnd = currX + (squareSize - pieceImageShift)
+
+                //find maximum y positions where pawn can move
+                let posYStart, posYEnd;
+                if (white) {
+                    posYStart = currY - (squareSize + pieceImageShift)
+                    posYEnd = currY - pieceImageShift
+                } else {
+                    posYStart = currY + squareSize - pieceImageShift
+                    posYEnd = currY + (2 * squareSize) - pieceImageShift
+                }
+
+                const topLeft = {
+                    x: currX - squareSize,
+                    y: white ? currY - squareSize : currY + squareSize
+                }
+                const topLeftIndex = getIndexAtPosition(topLeft.x, topLeft.y)
+
+                const topRight = {
+                    x: currX + squareSize,
+                    y: white ? currY - squareSize : currY + squareSize
+                }
+                const topRightIndex = getIndexAtPosition(topRight.x, topRight.y)
+
+                const inFront = {
+                    x: currX,
+                    y: white ? currY - squareSize : currY + squareSize
+                }
+
+                if (white && isPieceOnSquare(topLeft.x, topLeft.y) &&
+                    color_name_array[topLeftIndex].color === "black") {
+                    posXStart -= squareSize;
+                }
+                if (white && isPieceOnSquare(topRight.x, topRight.y) &&
+                    color_name_array[topRightIndex].color === "black") {
+                    posXEnd += squareSize;
+                }
+                if (!white && isPieceOnSquare(topLeft.x, topLeft.y) &&
+                    color_name_array[topLeftIndex].color === "white") {
+                    posXStart -= squareSize;
+                }
+                if (!white && isPieceOnSquare(topRight.x, topRight.y) &&
+                    color_name_array[topRightIndex].color === "white") {
+                    posXEnd += squareSize;
+                }
+
+                //if pawn has not moved yet, give it an ability to move two squares in front
+                if (white && currY >= canvasSize - 2 * squareSize &&
+                    !isPieceOnSquare(inFront.x, inFront.y - squareSize)) {
+                    posYStart -= squareSize
+                }
+                if (!white && currY <= 2 * squareSize &&
+                    !isPieceOnSquare(inFront.x, inFront.y + squareSize)) {
+                    posYEnd += squareSize
+                }
+                if (isPieceOnSquare(inFront.x, inFront.y) &&
+                    (inFront.x <= x && x <= inFront.x + squareSize - pieceImageShift)){
+                    x = currX;
+                    y = currY;
+                }
+
+                if ((posXStart >= x || x >= posXEnd) || (posYEnd <= y || y <= posYStart)){
+                    x = currX;
+                    y = currY;
+                }
+            }
+
+            if (color_name_array[i].name === "rook") {
+                // Check if the rook is being moved horizontally or vertically
+                const isHorizontalMove = (x !== currX && y === currY);
+                const isVerticalMove = (x === currX && y !== currY);
+
+                if (isHorizontalMove) {
+                    const minX = Math.min(currX, x);
+                    const maxX = Math.max(currX, x);
+                    console.log(`x:${currX} y:${currY} ==> x:${x} y:${y}`);
+                    for (let posX = minX + squareSize; posX < maxX; posX += squareSize) {
+                        const blockingPieceIndex = getIndexAtPosition(posX, y)
+                        if (isPieceOnSquare(posX, y) &&
+                            color_name_array[i].color !== color_name_array[blockingPieceIndex].color) {
+                            console.log(`Blocking piece: x:${posX} y:${y}`);
+                            x = currX
+                            break
+                        } else if (isPieceOnSquare(posX, y)){
+                            x = currX
+                            //
+                        }
+                    }
+                }
+                else if (isVerticalMove) {
+                    // Check if there are any pieces blocking the vertical path
+                    const minY = Math.min(currY, y);
+                    const maxY = Math.max(currY, y);
+                    for (let posY = minY + squareSize; posY < maxY; posY += squareSize) {
+                        if (isPieceOnSquare(x, posY)) {
+                            console.log(`Blocking piece: x:${x} y:${posY}`);
+                            y = currY;
+                            break;
+                        }
+                    }
+                } else {
+                    // Invalid move, reset position
+                    x = currX;
+                    y = currY;
+                }
+            }
+
+            if (color_name_array[i].name === "knight") {
+                //Get all the coordinates where the knight can move
+                const upLeft = {x: currX - squareSize, y: currY + 2 * squareSize}
+                const upLeftIndex = getIndexAtPosition(upLeft.x, upLeft.y)
+
+                const upRight = {x: currX + squareSize, y: currY + 2 * squareSize}
+                const upRightIndex = getIndexAtPosition(upRight.x, upRight.y)
+
+                const leftUp = {x: currX - 2 * squareSize, y: currY + squareSize}
+                const leftUpIndex = getIndexAtPosition(leftUp.x, leftUp.y)
+
+                const leftDown = {x: currX - 2 * squareSize, y: currY - squareSize}
+                const leftDownIndex = getIndexAtPosition(leftDown.x, leftDown.y)
+
+                const downLeft = {x: currX - squareSize, y: currY - 2 * squareSize}
+                const downLeftIndex = getIndexAtPosition(downLeft.x, downLeft.y)
+
+                const downRight = {x: currX + squareSize, y: currY - 2 * squareSize}
+                const downRightIndex = getIndexAtPosition(downRight.x, downRight.y)
+
+                const rightDown = {x: currX + 2 * squareSize, y: currY - squareSize}
+                const rightDownIndex = getIndexAtPosition(rightDown.x, rightDown.y)
+
+                const rightUp = {x: currX + 2 * squareSize, y: currY + squareSize}
+                const rightUpIndex = getIndexAtPosition(rightUp.x, rightUp.y)
+
+                const posIndices = [upLeftIndex, upRightIndex, leftUpIndex, leftDownIndex,
+                                downLeftIndex, downRightIndex, rightDownIndex, rightUpIndex]
+
+                const piecePos = [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp]
+
+                let validMove = false
+                for (let index = 0; index < posIndices.length; index++){
+                    if (x === piecePos[index].x && y === piecePos[index].y &&
+                        isPieceOnSquare(piecePos[index].x, piecePos[index].y) &&
+                        color_name_array[posIndices[index]].color === color_name_array[i].color){
+                        validMove = false
+                    }
+                    else if (x === piecePos[index].x && y === piecePos[index].y) validMove = true
+                }
+                if (!validMove){
+                    x = currX
+                    y = currY
                 }
             }
         }
-        if (this.draggingIndex !== -1) {
-            if (this.colorAndNameArray[i].color === "white" && this.colorAndNameArray[i].name === "pawn") {
-                let initialPosXStart = this.state.positions[i].x - 12.5
-                let initialPosXEnd = this.state.positions[i].x + 62.5
-                let initialPosYStart = this.state.positions[i].y - 12.5
-                let initialPosYEnd = this.state.positions[i].y + 62.5
-                console.log(initialPosYStart, initialPosYEnd)
-                if (!(initialPosXStart <= x && x <= initialPosXEnd) || y >= initialPosYStart+25){
-                    x = this.initialPositions[i].x;
-                    y = this.initialPositions[i].y;
-                }
-            }
-        }
 
-        //Only update the state if the mouse has been moved
-        if (x !== this.mousePosition.x || y !== this.mousePosition.y) {
-            const positions = [...this.state.positions];
-            positions[this.draggingIndex] = { x, y };
-            this.setState({ positions });
-            this.mousePosition = { x, y }
-        }
+        const pos = [...positions];
+        pos[i] = { x: x, y: y };
+        setPositions(pos)
     }
 
-    getIndexAtPosition = (x: number, y: number) => {
-        const positions = this.state.positions;
+    const onMouseMove = (event: MouseEvent) => {
+        mousePosition = getMousePositions(event);
+    }
+
+    const getIndexAtPosition = (x: number, y: number) => {
         for (let i = 0; i < positions.length; i++) {
             const { x: imageX, y: imageY } = positions[i];
-            const imageSize = this.props.imageSize;
             if (x >= imageX && x <= imageX + imageSize && y >= imageY && y <= imageY + imageSize) return i;
         }
         return -1;
     }
 
-    draw_pieces = (ctx: CanvasRenderingContext2D) => {
-        ctx.clearRect(0, 0, this.props.canvasSize, this.props.canvasSize);
-        const squareSize = this.props.squareSize
+    const draw_pieces = (ctx: CanvasRenderingContext2D) => {
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
         //Draw background
         if (ctx) {
             for (let row = 0; row < 8; row++) {
@@ -158,29 +284,27 @@ export class MovePieces extends React.Component<Props, State> {
             }
         }
         //Draw pieces
-        for (let i = 0; i < this.props.pieces.length; i++) {
-            const image = this.pieceImages[i];
-            let { x, y } = this.state.positions[i];
+        for (let i = 0; i < pieces.length; i++) {
+            const image = pieceImages[i];
+            let { x, y } = positions[i];
 
             // If the piece is being dragged, draw it at the current mouse position
-            if (this.isDragging && i === this.draggingIndex) {
-                x = this.mousePosition.x;
-                y = this.mousePosition.y;
+            if (i === draggingIndex) {
+                x = mousePosition.x;
+                y = mousePosition.y;
             }
-            ctx.drawImage(image, x, y, this.props.imageSize, this.props.imageSize);
+            ctx.drawImage(image, x, y, imageSize, imageSize);
         }
-        requestAnimationFrame(() => this.draw_pieces(ctx));
+        requestAnimationFrame(() => draw_pieces(ctx));
     }
 
-    render() {
-        return (
-            <canvas
-                className={"chessboard"}
-                ref={this.canvasRef}
-                width={this.props.canvasSize}
-                height={this.props.canvasSize}
-                onMouseDown={this.onMouseDown}
-            />
-        )
-    }
+    return (
+        <canvas
+            className={"chessboard"}
+            ref={canvasRef}
+            width={canvasSize}
+            height={canvasSize}
+            onMouseDown={onMouseDown}
+        />
+    )
 }
