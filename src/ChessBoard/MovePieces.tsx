@@ -2,7 +2,13 @@ import React, {useEffect, useState} from "react";
 import "./ChessBoard.css"
 
 interface Props {
-    pieces: {src: string, x: number, y:number, color: "white" | "black", name: string}[];
+    pieces: {src: string, x: number, y:number, color: "white" | "black", name: string, isAlive: boolean}[];
+}
+
+type Moves = {
+    x: number,
+    y:number,
+    index: number
 }
 
 export const MovePieces: React.FC<Props> = ({pieces}) => {
@@ -10,19 +16,18 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     const squareSize = 75;
     const canvasSize = 600;
     const imageSize = 50;
-    const pieceImages: HTMLImageElement[] = []
     let draggingIndex: number = -1
     let mousePosition = {x: 0, y: 0}
-    const color_name_array = pieces.map(({color, name}) => ({name, color}))
+    const pieceImages: HTMLImageElement[] = []
+    const color_name_array = pieces.map(({color, name, isAlive}) => ({name, color, isAlive}))
 
     for (let i = 0; i < pieces.length; i++) {
         const image = new Image();
         image.src = pieces[i].src;
         pieceImages.push(image)
     }
-    
-    const [positions, setPositions] = useState(pieces.map(({x,y}) => ({x, y})))
-    
+    const [positions, setPositions] = useState(pieces.map(({x,y, isAlive}) => ({x, y, isAlive})));
+
     useEffect(() => {
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
@@ -31,7 +36,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         canvas.addEventListener("mouseup", onMouseUp);
         draw_pieces(ctx);
         
-        return (() =>{
+        return (() => {
             canvas.removeEventListener("mousemove", onMouseMove);
             canvas.removeEventListener("mouseup", onMouseUp);
             window.removeEventListener("mousemove", handleMouseMove)
@@ -74,8 +79,8 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         mousePosition = { x: x, y: y };
     }
 
-    function isPieceOnSquare(x: number, y: number) {
-        return positions.some(pos => pos.x === x && pos.y === y);
+    const onMouseMove = (event: MouseEvent) => {
+        mousePosition = getMousePositions(event);
     }
 
     const adjustPiecePosition = () => {
@@ -128,20 +133,12 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                     y: white ? currY - squareSize : currY + squareSize
                 }
 
-                if (white && isPieceOnSquare(topLeft.x, topLeft.y) &&
-                    color_name_array[topLeftIndex].color === "black") {
+                if (isPieceOnSquare(topLeft.x, topLeft.y) &&
+                color_name_array[topLeftIndex].color !== color_name_array[i].color) {
                     posXStart -= squareSize;
                 }
-                if (white && isPieceOnSquare(topRight.x, topRight.y) &&
-                    color_name_array[topRightIndex].color === "black") {
-                    posXEnd += squareSize;
-                }
-                if (!white && isPieceOnSquare(topLeft.x, topLeft.y) &&
-                    color_name_array[topLeftIndex].color === "white") {
-                    posXStart -= squareSize;
-                }
-                if (!white && isPieceOnSquare(topRight.x, topRight.y) &&
-                    color_name_array[topRightIndex].color === "white") {
+                if (isPieceOnSquare(topRight.x, topRight.y) &&
+                    color_name_array[topRightIndex].color !== color_name_array[i].color) {
                     posXEnd += squareSize;
                 }
 
@@ -166,100 +163,285 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 }
             }
 
-            if (color_name_array[i].name === "rook") {
-                // Check if the rook is being moved horizontally or vertically
-                const isHorizontalMove = (x !== currX && y === currY);
-                const isVerticalMove = (x === currX && y !== currY);
-
-                if (isHorizontalMove) {
-                    const minX = Math.min(currX, x);
-                    const maxX = Math.max(currX, x);
-                    console.log(`x:${currX} y:${currY} ==> x:${x} y:${y}`);
-                    for (let posX = minX + squareSize; posX < maxX; posX += squareSize) {
-                        const blockingPieceIndex = getIndexAtPosition(posX, y)
-                        if (isPieceOnSquare(posX, y) &&
-                            color_name_array[i].color !== color_name_array[blockingPieceIndex].color) {
-                            console.log(`Blocking piece: x:${posX} y:${y}`);
-                            x = currX
-                            break
-                        } else if (isPieceOnSquare(posX, y)){
-                            x = currX
-                            //
-                        }
-                    }
+            const rookValidMoves = () => {
+                const validMoves: Moves[] = []
+                //down
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX, currY - square)
+                    validMoves.push({x: currX, y: currY - square, index: index })
                 }
-                else if (isVerticalMove) {
-                    // Check if there are any pieces blocking the vertical path
-                    const minY = Math.min(currY, y);
-                    const maxY = Math.max(currY, y);
-                    for (let posY = minY + squareSize; posY < maxY; posY += squareSize) {
-                        if (isPieceOnSquare(x, posY)) {
-                            console.log(`Blocking piece: x:${x} y:${posY}`);
-                            y = currY;
-                            break;
+                //up
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX, currY + square)
+                    validMoves.push({x: currX, y: currY + square, index})
+                }
+                //left
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX - square, currY)
+                    validMoves.push({x: currX - square, y: currY, index})
+                }
+                //right
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX + square, currY)
+                    validMoves.push({x: currX + square, y: currY, index})
+                }
+                return validMoves
+            }
+
+            if (color_name_array[i].name === "rook") {
+                const validMoves: Moves[] = rookValidMoves()
+                let isValidMove = false;
+                for (let index = 0; index < validMoves.length; index++) {
+                    if (x === validMoves[index].x && y === validMoves[index].y &&
+                        color_name_array[validMoves[index].index] &&
+                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
+                        // Cannot capture its own pieces
+                        isValidMove = false;
+                    }
+                    else if (x === validMoves[index].x && y === validMoves[index].y) {
+                        // check if there is any piece on the rook's path to the target square
+                        if (currX === x) {
+                            // check vertical movement
+                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                            let pathY = currY + stepY;
+                            let blocked = false;
+                            while (pathY !== validMoves[index].y) {
+                                if (isPieceOnSquare(currX, pathY)) {
+                                    blocked = true;
+                                    break;
+                                }
+                                pathY += stepY;
+                            }
+                            isValidMove = !blocked;
+                        } else if (currY === y) {
+                            // check horizontal movement
+                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                            let pathX = currX + stepX;
+                            let blocked = false;
+                            while (pathX !== validMoves[index].x) {
+                                if (isPieceOnSquare(pathX, currY)) {
+                                    blocked = true;
+                                    break;
+                                }
+                                pathX += stepX;
+                            }
+                            isValidMove = !blocked;
                         }
                     }
-                } else {
-                    // Invalid move, reset position
-                    x = currX;
-                    y = currY;
+                    if (isValidMove) break;
+                }
+                if (!isValidMove){
+                    x = currX
+                    y = currY
                 }
             }
 
             if (color_name_array[i].name === "knight") {
                 //Get all the coordinates where the knight can move
-                const upLeft = {x: currX - squareSize, y: currY + 2 * squareSize}
-                const upLeftIndex = getIndexAtPosition(upLeft.x, upLeft.y)
+                const upLeft = {x: currX - squareSize, y: currY + 2 * squareSize,
+                index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize)}
 
-                const upRight = {x: currX + squareSize, y: currY + 2 * squareSize}
-                const upRightIndex = getIndexAtPosition(upRight.x, upRight.y)
+                const upRight = {x: currX + squareSize, y: currY + 2 * squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY + 2 * squareSize)}
 
-                const leftUp = {x: currX - 2 * squareSize, y: currY + squareSize}
-                const leftUpIndex = getIndexAtPosition(leftUp.x, leftUp.y)
+                const leftUp = {x: currX - 2 * squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX - 2 * squareSize, currY + squareSize)}
 
-                const leftDown = {x: currX - 2 * squareSize, y: currY - squareSize}
-                const leftDownIndex = getIndexAtPosition(leftDown.x, leftDown.y)
+                const leftDown = {x: currX - 2 * squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX - 2 * squareSize, currY - squareSize)}
 
-                const downLeft = {x: currX - squareSize, y: currY - 2 * squareSize}
-                const downLeftIndex = getIndexAtPosition(downLeft.x, downLeft.y)
+                const downLeft = {x: currX - squareSize, y: currY - 2 * squareSize,
+                    index: getIndexAtPosition(currX - squareSize, currY - 2 * squareSize)}
 
-                const downRight = {x: currX + squareSize, y: currY - 2 * squareSize}
-                const downRightIndex = getIndexAtPosition(downRight.x, downRight.y)
+                const downRight = {x: currX + squareSize, y: currY - 2 * squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY - 2 * squareSize)}
 
-                const rightDown = {x: currX + 2 * squareSize, y: currY - squareSize}
-                const rightDownIndex = getIndexAtPosition(rightDown.x, rightDown.y)
+                const rightDown = {x: currX + 2 * squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX + 2 * squareSize, currY - squareSize)}
 
-                const rightUp = {x: currX + 2 * squareSize, y: currY + squareSize}
-                const rightUpIndex = getIndexAtPosition(rightUp.x, rightUp.y)
+                const rightUp = {x: currX + 2 * squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX + 2 * squareSize, currY + squareSize,)}
 
-                const posIndices = [upLeftIndex, upRightIndex, leftUpIndex, leftDownIndex,
-                                downLeftIndex, downRightIndex, rightDownIndex, rightUpIndex]
+                const validMoves = [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp]
 
-                const piecePos = [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp]
+                if (!isValidMove_king_knight(validMoves, x, y, i)){ x = currX; y = currY }
+            }
 
-                let validMove = false
-                for (let index = 0; index < posIndices.length; index++){
-                    if (x === piecePos[index].x && y === piecePos[index].y &&
-                        isPieceOnSquare(piecePos[index].x, piecePos[index].y) &&
-                        color_name_array[posIndices[index]].color === color_name_array[i].color){
-                        validMove = false
+            const bishopValidMoves = () => {
+                const validMoves: Moves[] = []
+                //right-down
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX + square, currY - square)
+                    validMoves.push({x: currX + square, y: currY - square, index: index })
+                }
+                //right-up
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX + square, currY + square)
+                    validMoves.push({x: currX + square, y: currY + square, index})
+                }
+                //left-up
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX - square, currY + square)
+                    validMoves.push({x: currX - square, y: currY + square, index})
+                }
+                //left-down
+                for (let square = squareSize; square < canvasSize; square += squareSize){
+                    const index = getIndexAtPosition(currX - square, currY - square)
+                    validMoves.push({x: currX - square, y: currY - square, index})
+                }
+                return validMoves
+            }
+
+            if (color_name_array[i].name === "bishop") {
+                const validMoves: Moves[] = bishopValidMoves()
+
+                let isValidMove = false;
+                for (let index = 0; index < validMoves.length; index++) {
+                    if (x === validMoves[index].x && y === validMoves[index].y &&
+                        color_name_array[validMoves[index].index] &&
+                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
+                        // Cannot capture its own pieces
+                        isValidMove = false;
                     }
-                    else if (x === piecePos[index].x && y === piecePos[index].y) validMove = true
+                    else if (x === validMoves[index].x && y === validMoves[index].y) {
+                        // check if there is any piece on the bishop's path to the target square
+                        const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                        const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                        let pathX = currX + stepX;
+                        let pathY = currY + stepY;
+                        let blocked = false;
+                        while (pathX !== validMoves[index].x && pathY !== validMoves[index].y) {
+                            if (isPieceOnSquare(pathX, pathY)) {
+                                blocked = true;
+                                break;
+                            }
+                            pathX += stepX;
+                            pathY += stepY;
+                        }
+                        isValidMove = !blocked;
+                    }
+                    if (isValidMove) break;
                 }
-                if (!validMove){
-                    x = currX
-                    y = currY
+                if (!isValidMove){ x = currX; y = currY }
+            }
+
+            if (color_name_array[i].name === "queen") {
+                const validMoves: Moves[] = [...rookValidMoves(), ...bishopValidMoves()]
+
+                let isValidMove = false;
+                for (let index = 0; index < validMoves.length; index++) {
+                    if (x === validMoves[index].x && y === validMoves[index].y &&
+                        color_name_array[validMoves[index].index] &&
+                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
+                        // Cannot capture its own pieces
+                        isValidMove = false;
+                    }
+                    else if (x === validMoves[index].x && y === validMoves[index].y) {
+                        // check if there is any piece on the rook's path to the target square
+                        if (currX === x) {
+                            // check vertical movement
+                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                            let pathY = currY + stepY;
+                            let blocked = false;
+                            while (pathY !== validMoves[index].y) {
+                                if (isPieceOnSquare(currX, pathY)) {
+                                    blocked = true;
+                                    break;
+                                }
+                                pathY += stepY;
+                            }
+                            isValidMove = !blocked;
+                        } else if (currY === y) {
+                            // check horizontal movement
+                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                            let pathX = currX + stepX;
+                            let blocked = false;
+                            while (pathX !== validMoves[index].x) {
+                                if (isPieceOnSquare(pathX, currY)) {
+                                    blocked = true;
+                                    break;
+                                }
+                                pathX += stepX;
+                            }
+                            isValidMove = !blocked;
+                        } else {
+                            // check diagonal movement
+                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                            let pathX = currX + stepX;
+                            let pathY = currY + stepY;
+                            let blocked = false;
+                            while (pathX !== validMoves[index].x && pathY !== validMoves[index].y) {
+                                if (isPieceOnSquare(pathX, pathY)) {
+                                    blocked = true;
+                                    break;
+                                }
+                                pathX += stepX;
+                                pathY += stepY;
+                            }
+                            isValidMove = !blocked;
+                        }
+                    }
+                    if (isValidMove) break;
                 }
+                if (!isValidMove){ x = currX; y = currY }
+            }
+
+            if (color_name_array[i].name === "king") {
+                //Get all the coordinates where the king can move
+                const left = {x: currX - squareSize, y: currY,
+                    index: getIndexAtPosition(currX - squareSize, currY)}
+
+                const right = {x: currX + squareSize, y: currY,
+                    index: getIndexAtPosition(currX + squareSize, currY)}
+
+                const down = {x: currX, y: currY - squareSize,
+                    index: getIndexAtPosition(currX, currY - squareSize)}
+
+                const up = {x: currX, y: currY + squareSize,
+                    index: getIndexAtPosition(currX, currY + squareSize)}
+
+                const downLeft = {x: currX - squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX - squareSize, currY- squareSize)}
+
+                const downRight = {x: currX + squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY - squareSize)}
+
+                const upLeft = {x: currX - squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX - squareSize, currY + squareSize)}
+
+                const upRight = {x: currX + squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY + squareSize)}
+
+                const validMoves = [left, right, down, up, downLeft, downRight, upLeft, upRight]
+
+                if (!isValidMove_king_knight(validMoves, x, y, i)) { x = currX; y = currY }
             }
         }
-
         const pos = [...positions];
-        pos[i] = { x: x, y: y };
+        pos[i] = { x: x, y: y, isAlive: true};
         setPositions(pos)
     }
 
-    const onMouseMove = (event: MouseEvent) => {
-        mousePosition = getMousePositions(event);
+    //check if the move is valid for the king and the knight
+    function isValidMove_king_knight(validMoves: Moves[], x: number, y: number, i: number): boolean{
+        let validMove = false
+        for (let index = 0; index < validMoves.length; index++){
+            if (x === validMoves[index].x && y === validMoves[index].y &&
+                isPieceOnSquare(validMoves[index].x, validMoves[index].y) &&
+                color_name_array[validMoves[index].index].color === color_name_array[i].color){
+                validMove = false
+            }
+            else if (x === validMoves[index].x && y === validMoves[index].y) {
+                validMove = true
+                break
+            }
+        }
+        return validMove
+    }
+
+    function isPieceOnSquare(x: number, y: number) {
+        return positions.some(pos => pos.x === x && pos.y === y);
     }
 
     const getIndexAtPosition = (x: number, y: number) => {
@@ -285,15 +467,16 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         }
         //Draw pieces
         for (let i = 0; i < pieces.length; i++) {
-            const image = pieceImages[i];
-            let { x, y } = positions[i];
-
-            // If the piece is being dragged, draw it at the current mouse position
-            if (i === draggingIndex) {
-                x = mousePosition.x;
-                y = mousePosition.y;
+            if (pieces[i].isAlive) {
+                const image = pieceImages[i];
+                let {x, y} = positions[i];
+                // If the piece is being dragged, draw it at the current mouse position
+                if (i === draggingIndex) {
+                    x = mousePosition.x;
+                    y = mousePosition.y;
+                }
+                ctx.drawImage(image, x, y, imageSize, imageSize);
             }
-            ctx.drawImage(image, x, y, imageSize, imageSize);
         }
         requestAnimationFrame(() => draw_pieces(ctx));
     }

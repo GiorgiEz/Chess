@@ -14,12 +14,13 @@ import blackKnight from '../assets/black-knight.png';
 import blackKing from '../assets/black-king.png';
 import blackBishop from '../assets/black-bishop.png';
 
-type Piece = {
+export type Piece = {
     src: string,
     x: number,
     y:number,
     color: "white" | "black",
-    name: string
+    name: string,
+    isAlive: boolean
 }
 
 export const ChessBoard = () => {
@@ -29,11 +30,11 @@ export const ChessBoard = () => {
     const whitePieces = [whiteRook, whiteKnight, whiteBishop, whiteQueen, whiteKing, whiteBishop, whiteKnight, whiteRook]
     const namesArray = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
 
-    for (let pos = 12.5, index = 0; index < blackPieces.length; pos += 75, index++) {
-        pieces.push({src: blackPieces[index], x: pos, y: 12.5, color: "black", name: namesArray[index]})
-        pieces.push({src: blackPawn, x: pos, y: 87.5, color: "black", name:"pawn"})
-        pieces.push({src: whitePawn, x: pos, y: 462.5, color: "white", name:"pawn"})
-        pieces.push({src: whitePieces[index], x: pos, y: 537.5, color: "white", name: namesArray[index]})
+    for (let pos = 12.5, i = 0; i < blackPieces.length; pos += 75, i++) {
+        pieces.push({src: blackPieces[i], x: pos, y: 12.5, color: "black", name: namesArray[i], isAlive: true})
+        pieces.push({src: blackPawn, x: pos, y: 87.5, color: "black", name:"pawn", isAlive: true})
+        pieces.push({src: whitePawn, x: pos, y: 462.5, color: "white", name:"pawn", isAlive: true})
+        pieces.push({src: whitePieces[i], x: pos, y: 537.5, color: "white", name: namesArray[i], isAlive: true})
     }
 
     return (
