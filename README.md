@@ -1,1 +1,1 @@
-# Chess Game
+# chess-game
