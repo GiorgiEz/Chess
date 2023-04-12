@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import "./ChessBoard.css"
+import {Piece} from "./ChessBoard";
 
 interface Props {
-    pieces: {src: string, x: number, y:number, color: "white" | "black", name: string, isAlive: boolean}[];
+    pieces: Piece[];
 }
 
 type Moves = {
@@ -18,19 +19,25 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     const imageSize = 50;
     let draggingIndex: number = -1
     let mousePosition = {x: 0, y: 0}
-    const pieceImages: HTMLImageElement[] = []
-    const color_name_array = pieces.map(({color, name, isAlive}) => ({name, color, isAlive}))
+    const color_name_arr = pieces.map(({color, name}) => ({name, color}))
 
-    for (let i = 0; i < pieces.length; i++) {
-        const image = new Image();
-        image.src = pieces[i].src;
-        pieceImages.push(image)
-    }
-    const [positions, setPositions] = useState(pieces.map(({x,y, isAlive}) => ({x, y, isAlive})));
+    const pieceImages: HTMLImageElement[] = useMemo(() => {
+        const images = [];
+        for (let i = 0; i < pieces.length; i++) {
+            const image = new Image();
+            image.src = pieces[i].src;
+            images.push(image)
+        }
+        return images
+    }, [pieces]);
+
+    const [positions, setPositions] = useState(pieces
+        .map(({x,y, isAlive}) => ({x, y, isAlive})));
 
     useEffect(() => {
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
+        canvas.style.cursor = "grabbing";
         window.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mousemove", onMouseMove);
         canvas.addEventListener("mouseup", onMouseUp);
@@ -67,9 +74,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     }
 
     const handleMouseMove = (event: MouseEvent) => {
-        const mousePositions = getMousePositions(event)
-        let x = mousePositions.x
-        let y = mousePositions.y
+        let {x, y} = getMousePositions(event)
         //Can't move pieces outside of canvas
         const border = canvasSize - imageSize
         if (x >= border) x = border
@@ -86,22 +91,94 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     const adjustPiecePosition = () => {
         let nextSquare = squareSize;
         const pieceImageShift = (squareSize - imageSize) / 2;
-        let x = mousePosition.x
-        let y = mousePosition.y
-        const i = draggingIndex
+        let {x, y} = mousePosition
 
-        for (let square = 0; square !== squareSize * 8; square += squareSize) {
+        for (let square = 0; square !== canvasSize; square += squareSize) {
             if (x >= square && x <= nextSquare) x = square + pieceImageShift;
             if (y < nextSquare && y >= square) y = square + pieceImageShift;
             nextSquare += squareSize;
         }
 
-        if (i !== -1) {
-            const currX = positions[i].x;
-            const currY = positions[i].y;
+        if (draggingIndex !== -1 && pieces[draggingIndex].isAlive) {
+            const currX = positions[draggingIndex].x;
+            const currY = positions[draggingIndex].y;
+            let killedPiecePosition = {x: -100, y: -100}
 
-            if (color_name_array[i].name === "pawn") {
-                const white = color_name_array[i].color === "white"
+            const resetPosition = () => {
+                x = currX;
+                y = currY;
+            }
+
+            const killPieces = (pos: {x:number, y:number}) => {
+                const index = getIndexAtPosition(pos.x, pos.y)
+                if (isPieceOnSquare(pos.x, pos.y) && color_name_arr[index] &&
+                    color_name_arr[index].color !== color_name_arr[draggingIndex].color) {
+                    pieces[index].isAlive = false
+                }
+                return index
+            }
+
+            // Check if anything is blocking the vertical way for the Rook and the Queen.
+            const checkVertical = (validMoves: Moves[], index: number) => {
+                const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                let pathY = currY + stepY;
+                let blocked = false;
+                while (pathY !== validMoves[index].y) {
+                    if (isPieceOnSquare(currX, pathY)){
+                        blocked = true
+                        break
+                    }
+                    pathY += stepY;
+                }
+                return !blocked;
+            }
+
+            // Check if anything is blocking the horizontal way for the Rook and the Queen.
+            const checkHorizontal = (validMoves: Moves[], index: number) => {
+                const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                let pathX = currX + stepX;
+                let blocked = false;
+                while (pathX !== validMoves[index].x) {
+                    if (isPieceOnSquare(pathX, currY)) {
+                        blocked = true;
+                        break;
+                    }
+                    pathX += stepX;
+                }
+                return !blocked;
+            }
+
+            // Check if anything is blocking the Diagonal way for the Bishop and the Queen.
+            const checkDiagonal = (validMoves: Moves[], index: number) => {
+                const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
+                const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
+                let pathX = currX + stepX;
+                let pathY = currY + stepY;
+                let blocked = false;
+                while (pathX !== validMoves[index].x && pathY !== validMoves[index].y) {
+                    if (isPieceOnSquare(pathX, pathY)) {
+                        blocked = true;
+                        break;
+                    }
+                    pathX += stepX;
+                    pathY += stepY;
+                }
+                return !blocked;
+            }
+
+            //check if the move is not blocked by the piece which is the same color as the dragging piece
+            const validMove = (validMoves: Moves[], index: number): boolean => {
+                let validMove = true
+                if (x === validMoves[index].x && y === validMoves[index].y &&
+                    isPieceOnSquare(validMoves[index].x, validMoves[index].y) &&
+                    color_name_arr[validMoves[index].index].color === color_name_arr[draggingIndex].color){
+                    validMove = false
+                }
+                return validMove
+            }
+
+            if (color_name_arr[draggingIndex].name === "pawn"){
+                const white = color_name_arr[draggingIndex].color === "white"
                 //find in between which x positions the dragging pawn is
                 let posXStart = currX - pieceImageShift
                 let posXEnd = currX + (squareSize - pieceImageShift)
@@ -134,109 +211,76 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 }
 
                 if (isPieceOnSquare(topLeft.x, topLeft.y) &&
-                color_name_array[topLeftIndex].color !== color_name_array[i].color) {
+                color_name_arr[topLeftIndex].color !== color_name_arr[draggingIndex].color){
                     posXStart -= squareSize;
                 }
                 if (isPieceOnSquare(topRight.x, topRight.y) &&
-                    color_name_array[topRightIndex].color !== color_name_array[i].color) {
+                    color_name_arr[topRightIndex].color !== color_name_arr[draggingIndex].color){
                     posXEnd += squareSize;
                 }
 
                 //if pawn has not moved yet, give it an ability to move two squares in front
-                if (white && currY >= canvasSize - 2 * squareSize &&
-                    !isPieceOnSquare(inFront.x, inFront.y - squareSize)) {
+                const whitePawnInitialPositionY = canvasSize - 2 * squareSize
+                if (white && currY >= whitePawnInitialPositionY &&
+                    !isPieceOnSquare(inFront.x, inFront.y - squareSize)){
                     posYStart -= squareSize
                 }
-                if (!white && currY <= 2 * squareSize &&
-                    !isPieceOnSquare(inFront.x, inFront.y + squareSize)) {
+                const blackPawnInitialPositionY = 2 * squareSize
+                if (!white && currY <= blackPawnInitialPositionY &&
+                    !isPieceOnSquare(inFront.x, inFront.y + squareSize)){
                     posYEnd += squareSize
                 }
+
                 if (isPieceOnSquare(inFront.x, inFront.y) &&
                     (inFront.x <= x && x <= inFront.x + squareSize - pieceImageShift)){
-                    x = currX;
-                    y = currY;
+                    resetPosition()
                 }
-
                 if ((posXStart >= x || x >= posXEnd) || (posYEnd <= y || y <= posYStart)){
-                    x = currX;
-                    y = currY;
+                    resetPosition()
+                } else {
+                    if (x === topLeft.x && y === topLeft.y) {
+                        killedPiecePosition = {x: topLeft.x, y: topLeft.y}
+                    }
+                    if (x === topRight.x && y === topRight.y) {
+                        killedPiecePosition = {x: topRight.x, y: topRight.y}
+                    }
                 }
             }
 
             const rookValidMoves = () => {
                 const validMoves: Moves[] = []
-                //down
                 for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX, currY - square)
-                    validMoves.push({x: currX, y: currY - square, index: index })
-                }
-                //up
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX, currY + square)
-                    validMoves.push({x: currX, y: currY + square, index})
-                }
-                //left
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX - square, currY)
-                    validMoves.push({x: currX - square, y: currY, index})
-                }
-                //right
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX + square, currY)
-                    validMoves.push({x: currX + square, y: currY, index})
+                    const indexDown = getIndexAtPosition(currX, currY - square)
+                    const indexUp = getIndexAtPosition(currX, currY + square)
+                    const indexLeft = getIndexAtPosition(currX - square, currY)
+                    const indexRight = getIndexAtPosition(currX + square, currY)
+                    validMoves.push({x: currX, y: currY - square, index: indexDown })
+                    validMoves.push({x: currX, y: currY + square, index: indexUp})
+                    validMoves.push({x: currX - square, y: currY, index: indexLeft})
+                    validMoves.push({x: currX + square, y: currY, index: indexRight})
                 }
                 return validMoves
             }
 
-            if (color_name_array[i].name === "rook") {
+            if (color_name_arr[draggingIndex].name === "rook"){
                 const validMoves: Moves[] = rookValidMoves()
                 let isValidMove = false;
+
                 for (let index = 0; index < validMoves.length; index++) {
-                    if (x === validMoves[index].x && y === validMoves[index].y &&
-                        color_name_array[validMoves[index].index] &&
-                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
-                        // Cannot capture its own pieces
-                        isValidMove = false;
-                    }
+                    if (!validMove(validMoves, index)) break
                     else if (x === validMoves[index].x && y === validMoves[index].y) {
-                        // check if there is any piece on the rook's path to the target square
-                        if (currX === x) {
-                            // check vertical movement
-                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
-                            let pathY = currY + stepY;
-                            let blocked = false;
-                            while (pathY !== validMoves[index].y) {
-                                if (isPieceOnSquare(currX, pathY)) {
-                                    blocked = true;
-                                    break;
-                                }
-                                pathY += stepY;
-                            }
-                            isValidMove = !blocked;
-                        } else if (currY === y) {
-                            // check horizontal movement
-                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
-                            let pathX = currX + stepX;
-                            let blocked = false;
-                            while (pathX !== validMoves[index].x) {
-                                if (isPieceOnSquare(pathX, currY)) {
-                                    blocked = true;
-                                    break;
-                                }
-                                pathX += stepX;
-                            }
-                            isValidMove = !blocked;
-                        }
+                        if (currX === x) isValidMove = checkVertical(validMoves, index);
+                        else if (currY === y) isValidMove = checkHorizontal(validMoves, index)
                     }
-                    if (isValidMove) break;
+                    if (isValidMove) {
+                        killedPiecePosition = {x: validMoves[index].x, y: validMoves[index].y}
+                        break;
+                    }
                 }
-                if (!isValidMove){
-                    x = currX
-                    y = currY
-                }
+                if (!isValidMove) resetPosition()
             }
 
-            if (color_name_array[i].name === "knight") {
+            if (color_name_arr[draggingIndex].name === "knight"){
                 //Get all the coordinates where the knight can move
                 const upLeft = {x: currX - squareSize, y: currY + 2 * squareSize,
                 index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize)}
@@ -264,180 +308,121 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
 
                 const validMoves = [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp]
 
-                if (!isValidMove_king_knight(validMoves, x, y, i)){ x = currX; y = currY }
+                let isValidMove = false
+                for (let index = 0; index < validMoves.length; index++) {
+                    if (!validMove(validMoves, index)) break
+                    else if (x === validMoves[index].x && y === validMoves[index].y) {
+                        killedPiecePosition = {x: validMoves[index].x, y: validMoves[index].y}
+                        isValidMove = true
+                    }
+                }
+                if (!isValidMove) resetPosition()
             }
 
             const bishopValidMoves = () => {
                 const validMoves: Moves[] = []
-                //right-down
                 for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX + square, currY - square)
-                    validMoves.push({x: currX + square, y: currY - square, index: index })
-                }
-                //right-up
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX + square, currY + square)
-                    validMoves.push({x: currX + square, y: currY + square, index})
-                }
-                //left-up
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX - square, currY + square)
-                    validMoves.push({x: currX - square, y: currY + square, index})
-                }
-                //left-down
-                for (let square = squareSize; square < canvasSize; square += squareSize){
-                    const index = getIndexAtPosition(currX - square, currY - square)
-                    validMoves.push({x: currX - square, y: currY - square, index})
+                    const indexRightDown = getIndexAtPosition(currX + square, currY - square)
+                    const indexRightUp = getIndexAtPosition(currX + square, currY + square)
+                    const indexLeftUp = getIndexAtPosition(currX - square, currY + square)
+                    const indexLeftDown = getIndexAtPosition(currX - square, currY - square)
+                    validMoves.push({x: currX + square, y: currY - square, index: indexRightDown })
+                    validMoves.push({x: currX + square, y: currY + square, index: indexRightUp})
+                    validMoves.push({x: currX - square, y: currY + square, index: indexLeftUp})
+                    validMoves.push({x: currX - square, y: currY - square, index: indexLeftDown})
                 }
                 return validMoves
             }
 
-            if (color_name_array[i].name === "bishop") {
+            if (color_name_arr[draggingIndex].name === "bishop") {
                 const validMoves: Moves[] = bishopValidMoves()
-
                 let isValidMove = false;
+
                 for (let index = 0; index < validMoves.length; index++) {
-                    if (x === validMoves[index].x && y === validMoves[index].y &&
-                        color_name_array[validMoves[index].index] &&
-                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
-                        // Cannot capture its own pieces
-                        isValidMove = false;
-                    }
+                    if (!validMove(validMoves, index)) break
                     else if (x === validMoves[index].x && y === validMoves[index].y) {
-                        // check if there is any piece on the bishop's path to the target square
-                        const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
-                        const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
-                        let pathX = currX + stepX;
-                        let pathY = currY + stepY;
-                        let blocked = false;
-                        while (pathX !== validMoves[index].x && pathY !== validMoves[index].y) {
-                            if (isPieceOnSquare(pathX, pathY)) {
-                                blocked = true;
-                                break;
-                            }
-                            pathX += stepX;
-                            pathY += stepY;
-                        }
-                        isValidMove = !blocked;
+                        isValidMove = checkDiagonal(validMoves, index)
                     }
-                    if (isValidMove) break;
+                    if (isValidMove) {
+                        killedPiecePosition = {x: validMoves[index].x, y: validMoves[index].y}
+                        break;
+                    }
                 }
-                if (!isValidMove){ x = currX; y = currY }
+                if (!isValidMove) resetPosition()
             }
 
-            if (color_name_array[i].name === "queen") {
+            if (color_name_arr[draggingIndex].name === "queen") {
                 const validMoves: Moves[] = [...rookValidMoves(), ...bishopValidMoves()]
-
                 let isValidMove = false;
+
                 for (let index = 0; index < validMoves.length; index++) {
-                    if (x === validMoves[index].x && y === validMoves[index].y &&
-                        color_name_array[validMoves[index].index] &&
-                        color_name_array[validMoves[index].index].color === color_name_array[i].color) {
-                        // Cannot capture its own pieces
-                        isValidMove = false;
-                    }
+                    if (!validMove(validMoves, index)) break
                     else if (x === validMoves[index].x && y === validMoves[index].y) {
-                        // check if there is any piece on the rook's path to the target square
-                        if (currX === x) {
-                            // check vertical movement
-                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
-                            let pathY = currY + stepY;
-                            let blocked = false;
-                            while (pathY !== validMoves[index].y) {
-                                if (isPieceOnSquare(currX, pathY)) {
-                                    blocked = true;
-                                    break;
-                                }
-                                pathY += stepY;
-                            }
-                            isValidMove = !blocked;
-                        } else if (currY === y) {
-                            // check horizontal movement
-                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
-                            let pathX = currX + stepX;
-                            let blocked = false;
-                            while (pathX !== validMoves[index].x) {
-                                if (isPieceOnSquare(pathX, currY)) {
-                                    blocked = true;
-                                    break;
-                                }
-                                pathX += stepX;
-                            }
-                            isValidMove = !blocked;
-                        } else {
-                            // check diagonal movement
-                            const stepX = validMoves[index].x - currX > 0 ? squareSize : -squareSize;
-                            const stepY = validMoves[index].y - currY > 0 ? squareSize : -squareSize;
-                            let pathX = currX + stepX;
-                            let pathY = currY + stepY;
-                            let blocked = false;
-                            while (pathX !== validMoves[index].x && pathY !== validMoves[index].y) {
-                                if (isPieceOnSquare(pathX, pathY)) {
-                                    blocked = true;
-                                    break;
-                                }
-                                pathX += stepX;
-                                pathY += stepY;
-                            }
-                            isValidMove = !blocked;
-                        }
+                        if (currX === x) isValidMove = checkVertical(validMoves, index)
+                        else if (currY === y) isValidMove = checkHorizontal(validMoves, index)
+                        else isValidMove = checkDiagonal(validMoves, index)
                     }
-                    if (isValidMove) break;
+                    if (isValidMove) {
+                        killedPiecePosition = {x: validMoves[index].x, y: validMoves[index].y};
+                        break;
+                    }
                 }
-                if (!isValidMove){ x = currX; y = currY }
+                if (!isValidMove) { resetPosition() }
             }
 
-            if (color_name_array[i].name === "king") {
+            if (color_name_arr[draggingIndex].name === "king") {
                 //Get all the coordinates where the king can move
-                const left = {x: currX - squareSize, y: currY,
-                    index: getIndexAtPosition(currX - squareSize, currY)}
-
-                const right = {x: currX + squareSize, y: currY,
-                    index: getIndexAtPosition(currX + squareSize, currY)}
-
-                const down = {x: currX, y: currY - squareSize,
-                    index: getIndexAtPosition(currX, currY - squareSize)}
-
-                const up = {x: currX, y: currY + squareSize,
-                    index: getIndexAtPosition(currX, currY + squareSize)}
-
-                const downLeft = {x: currX - squareSize, y: currY - squareSize,
-                    index: getIndexAtPosition(currX - squareSize, currY- squareSize)}
-
-                const downRight = {x: currX + squareSize, y: currY - squareSize,
-                    index: getIndexAtPosition(currX + squareSize, currY - squareSize)}
-
-                const upLeft = {x: currX - squareSize, y: currY + squareSize,
-                    index: getIndexAtPosition(currX - squareSize, currY + squareSize)}
-
-                const upRight = {x: currX + squareSize, y: currY + squareSize,
-                    index: getIndexAtPosition(currX + squareSize, currY + squareSize)}
-
+                const left = {
+                    x: currX - squareSize, y: currY,
+                    index: getIndexAtPosition(currX - squareSize, currY)
+                }
+                const right = {
+                    x: currX + squareSize, y: currY,
+                    index: getIndexAtPosition(currX + squareSize, currY)
+                }
+                const down = {
+                    x: currX, y: currY - squareSize,
+                    index: getIndexAtPosition(currX, currY - squareSize)
+                }
+                const up = {
+                    x: currX, y: currY + squareSize,
+                    index: getIndexAtPosition(currX, currY + squareSize)
+                }
+                const downLeft = {
+                    x: currX - squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX - squareSize, currY - squareSize)
+                }
+                const downRight = {
+                    x: currX + squareSize, y: currY - squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY - squareSize)
+                }
+                const upLeft = {
+                    x: currX - squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX - squareSize, currY + squareSize)
+                }
+                const upRight = {
+                    x: currX + squareSize, y: currY + squareSize,
+                    index: getIndexAtPosition(currX + squareSize, currY + squareSize)
+                }
                 const validMoves = [left, right, down, up, downLeft, downRight, upLeft, upRight]
+                let isValidMove = false
 
-                if (!isValidMove_king_knight(validMoves, x, y, i)) { x = currX; y = currY }
+                for (let index = 0; index < validMoves.length; index++) {
+                    if (!validMove(validMoves, index)) break
+                    else if (x === validMoves[index].x && y === validMoves[index].y) {
+                        killedPiecePosition = {x: validMoves[index].x, y: validMoves[index].y}
+                        isValidMove = true
+                    }
+                }
+                if (!isValidMove) resetPosition()
             }
-        }
-        const pos = [...positions];
-        pos[i] = { x: x, y: y, isAlive: true};
-        setPositions(pos)
-    }
+            const killedPieceIndex = killPieces(killedPiecePosition)
 
-    //check if the move is valid for the king and the knight
-    function isValidMove_king_knight(validMoves: Moves[], x: number, y: number, i: number): boolean{
-        let validMove = false
-        for (let index = 0; index < validMoves.length; index++){
-            if (x === validMoves[index].x && y === validMoves[index].y &&
-                isPieceOnSquare(validMoves[index].x, validMoves[index].y) &&
-                color_name_array[validMoves[index].index].color === color_name_array[i].color){
-                validMove = false
-            }
-            else if (x === validMoves[index].x && y === validMoves[index].y) {
-                validMove = true
-                break
-            }
+            const piecePositions = [...positions]
+            piecePositions[draggingIndex] = {x: x, y: y, isAlive: true}
+            if (killedPieceIndex !== -1) piecePositions[killedPieceIndex] = {x: -100, y: -100, isAlive: false}
+            setPositions(piecePositions)
         }
-        return validMove
     }
 
     function isPieceOnSquare(x: number, y: number) {
@@ -460,7 +445,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 for (let col = 0; col < 8; col++) {
                     const x = col * squareSize;
                     const y = row * squareSize;
-                    ctx.fillStyle = (row + col) % 2 === 0 ? "#FFFFFF" : '#000000';
+                    ctx.fillStyle = (row + col) % 2 === 0 ? "#FFFFFF" : '#000000'
                     ctx.fillRect(x, y, squareSize, squareSize);
                 }
             }
