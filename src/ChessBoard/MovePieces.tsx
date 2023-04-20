@@ -12,7 +12,7 @@ type Moves = {
     index: number,
 }
 
-type Figure = {
+type Pieces = {
     x: number,
     y: number,
     isAlive: boolean,
@@ -78,7 +78,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
 
     function onMouseDown (event: React.MouseEvent<HTMLCanvasElement>) {
         const mousePositions = getMousePositions(event)
-        const index = getIndexAtPosition(mousePositions.x, mousePositions.y);
+        const index = getIndexAtPosition(mousePositions.x, mousePositions.y, positions);
         if (index !== -1) {
             draggingIndex = index
             mousePosition = {x: mousePositions.x, y: mousePositions.y};
@@ -109,7 +109,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     }
 
     const killPieces = (pos: Positions) => {
-        const index = getIndexAtPosition(pos.x, pos.y)
+        const index = getIndexAtPosition(pos.x, pos.y, positions)
         if (isPieceOnSquare(pos.x, pos.y, positions) && color_name_arr[index] &&
             color_name_arr[index].color !== color_name_arr[draggingIndex].color) {
             pieces[index].isAlive = false
@@ -144,9 +144,9 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return board.some(pos => pos.x === x && pos.y === y);
     }
 
-    const getIndexAtPosition = (x: number, y: number) => {
-        for (let i = 0; i < positions.length; i++) {
-            const { x: imageX, y: imageY } = positions[i];
+    const getIndexAtPosition = (x: number, y: number, board: Pieces[]) => {
+        for (let i = 0; i < board.length; i++) {
+            const { x: imageX, y: imageY } = board[i];
             if (x >= imageX && x <= imageX + imageSize && y >= imageY && y <= imageY + imageSize) return i;
         }
         return -1;
@@ -168,14 +168,14 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     }
 
     // check if position where the king or the knight can move isn't blocked by same colored piece
-    const correctMoves = (Moves: Moves[]) => {
+    const correctMoves = (Moves: Moves[], board: Pieces[]) => {
         let validMoves: Moves[] = []
         for (let i = 0; i < Moves.length; i++){
             const move = {x: Moves[i].x, y: Moves[i].y, index: Moves[i].index}
             if (move.x >= 0 && move.x <= canvasSize && move.y >= 0 && move.y <= canvasSize) {
                 if (color_name_arr[move.index]) {
                     const sameColors = color_name_arr[move.index].color === color_name_arr[draggingIndex].color
-                    if (isPieceOnSquare(move.x, move.y, positions) && !sameColors) {
+                    if (isPieceOnSquare(move.x, move.y, board) && !sameColors) {
                         redSquares.push({x: move.x, y: move.y})
                         validMoves.push(move)
                     }
@@ -199,28 +199,25 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             x: currX,
             y: white ? currY - squareSize : currY + squareSize
         }
-        const topLeftIndex = getIndexAtPosition(topLeft.x, topLeft.y)
-        const topRightIndex = getIndexAtPosition(topRight.x, topRight.y)
+        const topLeftIndex = getIndexAtPosition(topLeft.x, topLeft.y, positions)
+        const topRightIndex = getIndexAtPosition(topRight.x, topRight.y, positions)
         return {topLeft, topRight, inFront, topLeftIndex, topRightIndex}
     }
 
     const getValidMovesForRookOrBishop = (
-        dx: number, dy: number, currX: number, currY: number, dragIndex: number, board: Positions[]
+        dx: number, dy: number, currX: number, currY: number, dragIndex: number, board: Pieces[]
     ) => {
         let validMoves: Moves[] = [];
-        if (color_name_arr[draggingIndex].name === "king") dragIndex = draggingIndex
-
         for (let square = squareSize; square < canvasSize; square += squareSize) {
             const x = currX + square * dx;
             const y = currY + square * dy;
-            const index = getIndexAtPosition(x, y);
+            const index = getIndexAtPosition(x, y, board);
 
             if (x >= 0 && x <= canvasSize && y >= 0 && y <= canvasSize) {
                 if (color_name_arr[index] && color_name_arr[dragIndex]) {
                     const sameColors = color_name_arr[index].color === color_name_arr[dragIndex].color;
                     if (isPieceOnSquare(x, y, board) && sameColors) break;
                     else if (isPieceOnSquare(x, y, board) && !sameColors) {
-                        redSquares.push({x, y})
                         validMoves.push({x, y, index});
                         break;
                     }
@@ -231,7 +228,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return validMoves;
     }
 
-    const rookValidMoves = (currX: number, currY: number, index: number, board: Positions[]) => {
+    const rookValidMoves = (currX: number, currY: number, index: number, board: Pieces[]) => {
         let validMoves: Moves[] = [];
 
         validMoves = validMoves.concat(getValidMovesForRookOrBishop(-1, 0, currX, currY, index, board));
@@ -241,7 +238,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return validMoves
     }
 
-    const bishopValidMoves = (currX: number, currY: number, index: number, board: Positions[]) => {
+    const bishopValidMoves = (currX: number, currY: number, index: number, board: Pieces[]) => {
         let validMoves: Moves[] = [];
 
         validMoves = validMoves.concat(getValidMovesForRookOrBishop(1, 1, currX, currY, index, board));
@@ -252,80 +249,80 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return validMoves
     }
 
-    const knightValidMoves = (currX: number, currY: number) => {
+    const knightValidMoves = (currX: number, currY: number, index: number, board: Pieces[]) => {
         //Get all the coordinates where the knight can move
         const upLeft = {x: currX - squareSize, y: currY + 2 * squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize)}
+            index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize, board)}
 
         const upRight = {x: currX + squareSize, y: currY + 2 * squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY + 2 * squareSize)}
+            index: getIndexAtPosition(currX + squareSize, currY + 2 * squareSize, board)}
 
         const leftUp = {x: currX - 2 * squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX - 2 * squareSize, currY + squareSize)}
+            index: getIndexAtPosition(currX - 2 * squareSize, currY + squareSize, board)}
 
         const leftDown = {x: currX - 2 * squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX - 2 * squareSize, currY - squareSize)}
+            index: getIndexAtPosition(currX - 2 * squareSize, currY - squareSize, board)}
 
         const downLeft = {x: currX - squareSize, y: currY - 2 * squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY - 2 * squareSize),}
+            index: getIndexAtPosition(currX - squareSize, currY - 2 * squareSize, board)}
 
         const downRight = {x: currX + squareSize, y: currY - 2 * squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY - 2 * squareSize),}
+            index: getIndexAtPosition(currX + squareSize, currY - 2 * squareSize, board)}
 
         const rightDown = {x: currX + 2 * squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX + 2 * squareSize, currY - squareSize),}
+            index: getIndexAtPosition(currX + 2 * squareSize, currY - squareSize, board)}
 
         const rightUp = {x: currX + 2 * squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX + 2 * squareSize, currY + squareSize),}
+            index: getIndexAtPosition(currX + 2 * squareSize, currY + squareSize, board)}
 
-        return correctMoves([upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp])
+        return correctMoves([upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp], board)
     }
 
-    const queenValidMoves = (currX: number, currY: number, index: number, board: Positions[]) => {
+    const queenValidMoves = (currX: number, currY: number, index: number, board: Pieces[]) => {
         return [...rookValidMoves(currX, currY, index, board), ...bishopValidMoves(currX, currY, index, board)]
     }
 
-    const kingValidMoves = (currX: number, currY: number) => {
+    const kingValidMoves = (currX: number, currY: number, board: Pieces[]) => {
         //Get all the coordinates where the king can move
         const left = {
             x: currX - squareSize, y: currY,
-            index: getIndexAtPosition(currX - squareSize, currY)
+            index: getIndexAtPosition(currX - squareSize, currY, board)
         }
         const right = {
             x: currX + squareSize, y: currY,
-            index: getIndexAtPosition(currX + squareSize, currY)
+            index: getIndexAtPosition(currX + squareSize, currY, board)
         }
         const down = {
             x: currX, y: currY - squareSize,
-            index: getIndexAtPosition(currX, currY - squareSize)
+            index: getIndexAtPosition(currX, currY - squareSize, board)
         }
         const up = {
             x: currX, y: currY + squareSize,
-            index: getIndexAtPosition(currX, currY + squareSize)
+            index: getIndexAtPosition(currX, currY + squareSize, board)
         }
         const downLeft = {
             x: currX - squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY - squareSize)
+            index: getIndexAtPosition(currX - squareSize, currY - squareSize, board)
         }
         const downRight = {
             x: currX + squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY - squareSize)
+            index: getIndexAtPosition(currX + squareSize, currY - squareSize, board)
         }
         const upLeft = {
             x: currX - squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY + squareSize)
+            index: getIndexAtPosition(currX - squareSize, currY + squareSize, board)
         }
         const upRight = {
             x: currX + squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY + squareSize)
+            index: getIndexAtPosition(currX + squareSize, currY + squareSize, board)
         }
-        return correctMoves([left, right, down, up, downLeft, downRight, upLeft, upRight])
+        return correctMoves([left, right, down, up, downLeft, downRight, upLeft, upRight], board)
     }
 
     //find all the positions where all the rooks, knights and the bishops can move
     function simulateMoves(
         leftWhiteIndex: number, rightWhiteIndex: number, leftBlackIndex: number, rightBlackIndex: number,
-        validMovesFunction: (x: number, y: number, index: number, board: Figure[]) => Moves[], board: Figure[]) {
+        validMovesFunction: (x: number, y: number, index: number, board: Pieces[]) => Moves[], board: Pieces[]) {
 
         const leftWhitePiece = board[leftWhiteIndex].isAlive ?
             validMovesFunction(board[leftWhiteIndex].x, board[leftWhiteIndex].y, leftWhiteIndex, board) : []
@@ -342,19 +339,19 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return {blackMoves: [...leftBlackPiece, ...rightBlackPiece], whiteMoves: [...leftWhitePiece, ...rightWhitePiece]}
     }
 
-    function getPossibleMovesForRooks(board: Figure[]){
+    function getPossibleMovesForRooks(board: Pieces[]){
         return simulateMoves(3, 31, 0, 28, rookValidMoves, board)
     }
 
-    function getPossibleMovesForKnights(){
-        return simulateMoves(7, 27, 4, 24, knightValidMoves, positions)
+    function getPossibleMovesForKnights(board: Pieces[]){
+        return simulateMoves(7, 27, 4, 24, knightValidMoves, board)
     }
 
-    function getPossibleMovesForBishops(board: Figure[]){
+    function getPossibleMovesForBishops(board: Pieces[]){
         return simulateMoves(11, 23, 8, 20, bishopValidMoves, board)
     }
 
-    function getPossibleMovesForQueen(board: Figure[]){
+    function getPossibleMovesForQueen(board: Pieces[]){
         const whitePieceIndex = 15
         const blackPieceIndex = 12
 
@@ -364,20 +361,20 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return {blackMoves:  [...blackPiece], whiteMoves: [...whitePiece]}
     }
 
-    function getPossibleMovesForKing(){
-        const whitePiece = kingValidMoves(white_king.x, white_king.y)
-        const blackPiece = kingValidMoves(black_king.x, black_king.y)
+    function getPossibleMovesForKing(board: Pieces[]){
+        const whitePiece = kingValidMoves(white_king.x, white_king.y, board)
+        const blackPiece = kingValidMoves(black_king.x, black_king.y, board)
         return {blackMoves:  [...blackPiece], whiteMoves: [...whitePiece]}
     }
 
-    function getPossibleMovesForPawns(){
+    function getPossibleMovesForPawns(board: Pieces[]){
         let blackMoves = []
         let whiteMoves = []
 
         let whitePawnIndex = 2
         let blackPawnIndex = 1
-        while (whitePawnIndex < positions.length){
-            const whitePos = {x: positions[whitePawnIndex].x, y: positions[whitePawnIndex].y, index: whitePawnIndex}
+        while (whitePawnIndex < board.length){
+            const whitePos = {x: board[whitePawnIndex].x, y: board[whitePawnIndex].y, index: whitePawnIndex}
             const whiteRight = {
                 x: pawnPossibleMoves(whitePos.x, whitePos.y, whitePos.index).topRight.x,
                 y: pawnPossibleMoves(whitePos.x, whitePos.y, whitePos.index).topRight.y,
@@ -389,7 +386,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 index: pawnPossibleMoves(whitePos.x, whitePos.y, whitePos.index).topLeftIndex
             }
 
-            const blackPos = {x: positions[blackPawnIndex].x, y: positions[blackPawnIndex].y, index: blackPawnIndex}
+            const blackPos = {x: board[blackPawnIndex].x, y: board[blackPawnIndex].y, index: blackPawnIndex}
             const blackRight = {
                 x: pawnPossibleMoves(blackPos.x, blackPos.y, blackPos.index).topRight.x,
                 y: pawnPossibleMoves(blackPos.x, blackPos.y, blackPos.index).topRight.y,
@@ -411,25 +408,25 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return {whiteMoves, blackMoves}
     }
 
-    function getPossibleMovesForAllBlackPieces(board: Figure[]){
+    function getPossibleMovesForAllBlackPieces(board: Pieces[]){
         return [
             ...getPossibleMovesForRooks(board).blackMoves,
-            ...getPossibleMovesForKnights().blackMoves,
+            ...getPossibleMovesForKnights(board).blackMoves,
             ...getPossibleMovesForBishops(board).blackMoves,
             ...getPossibleMovesForQueen(board).blackMoves,
-            ...getPossibleMovesForPawns().blackMoves,
-            ...getPossibleMovesForKing().blackMoves
+            ...getPossibleMovesForPawns(board).blackMoves,
+            ...getPossibleMovesForKing(board).blackMoves
         ]
     }
 
-    function getPossibleMovesForAllWhitePieces(board: Figure[]){
+    function getPossibleMovesForAllWhitePieces(board: Pieces[]){
         return [
             ...getPossibleMovesForRooks(board).whiteMoves,
-            ...getPossibleMovesForKnights().whiteMoves,
+            ...getPossibleMovesForKnights(board).whiteMoves,
             ...getPossibleMovesForBishops(board).whiteMoves,
             ...getPossibleMovesForQueen(board).whiteMoves,
-            ...getPossibleMovesForPawns().whiteMoves,
-            ...getPossibleMovesForKing().whiteMoves
+            ...getPossibleMovesForPawns(board).whiteMoves,
+            ...getPossibleMovesForKing(board).whiteMoves
         ]
     }
 
@@ -439,15 +436,15 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         const validMoves: Moves[] = []
 
         if (draggingIndex === white_king_index){
-            const board = positions.map(pos => ({...pos}));
-            for (let kingPosition of kingValidMoves(currX, currY)){
+            for (let kingPosition of kingValidMoves(currX, currY, positions)){
+                const board = positions.map(pos => ({...pos}));
                 board[white_king_index] = {x: kingPosition.x, y: kingPosition.y, isAlive: true}
                 let allBlackMoves = getPossibleMovesForAllBlackPieces(board)
                 if (!isPieceOnSquare(kingPosition.x, kingPosition.y, allBlackMoves)) validMoves.push(kingPosition)
             }
         } else {
-            const board = positions.map(pos => ({...pos}));
-            for (let kingPosition of kingValidMoves(currX, currY)){
+            for (let kingPosition of kingValidMoves(currX, currY, positions)){
+                const board = positions.map(pos => ({...pos}));
                 board[black_king_index] = {x: kingPosition.x, y: kingPosition.y, isAlive: true}
                 let allWhiteMoves = getPossibleMovesForAllWhitePieces(board)
                 if (!isPieceOnSquare(kingPosition.x, kingPosition.y, allWhiteMoves)) validMoves.push(kingPosition)
@@ -456,37 +453,51 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return validMoves
     }
 
-    //1. find all positions where the dragging piece can go
-    //2. find all positions where the enemy pieces can go
-    //3. simulate if dragging piece is moved to the positions where it can go
-    //   and for each position see if king is getting threatened by the enemy piece,
-    //   if threatened, then it's not a legal move for dragging piece to go there.
-
-    const handleQueenMovement = () => {
+    function movementHandler(allMovesFunction: (board: Pieces[]) => Moves[], king: Positions,
+                             validMovesFunction: (currX: number, currY: number, index: number, board: Pieces[]) => Moves[]) {
         const {currX, currY} = getCurrentPosition()
+        const index = getIndexAtPosition(currX, currY, positions)
         const updatedValidMoves = []
+        for (let move of validMovesFunction(currX, currY, index, positions)) {
+            const newBoard = positions.map(pos => ({...pos}));
 
-        if (color_name_arr[draggingIndex].name === "queen" && color_name_arr[draggingIndex].color === "white") {
-            const index = getIndexAtPosition(currX, currY)
-            const newBoard = positions.map(pos => ({...pos}));
-            for (let move of queenValidMoves(currX, currY, index, positions)) {
-                newBoard[index] = {x: move.x, y: move.y, isAlive: true}
-                const allBlackMoves = getPossibleMovesForAllBlackPieces(newBoard)
-                if (!isPieceOnSquare(white_king.x, white_king.y, allBlackMoves))
-                    updatedValidMoves.push(move)
-            }
-        }
-        else if (color_name_arr[draggingIndex].name === "queen" && color_name_arr[draggingIndex].color === "black") {
-            const index = getIndexAtPosition(currX, currY)
-            const newBoard = positions.map(pos => ({...pos}));
-            for (let move of queenValidMoves(currX, currY, index, positions)) {
-                newBoard[index] = {x: move.x, y: move.y, isAlive: true}
-                const allWhiteMoves = getPossibleMovesForAllWhitePieces(newBoard)
-                if (!isPieceOnSquare(black_king.x, black_king.y, allWhiteMoves))
-                    updatedValidMoves.push(move)
-            }
+            const potentialKilledPiece = getIndexAtPosition(move.x, move.y, newBoard)
+            newBoard[index] = {x: move.x, y: move.y, isAlive: true}
+            newBoard[potentialKilledPiece] = {x: -1000, y: -1000, isAlive: false}
+            if (potentialKilledPiece !== -1) redSquares.push({x: move.x, y: move.y})
+
+            const allMoves = allMovesFunction(newBoard)
+            if (!isPieceOnSquare(king.x, king.y, allMoves)) updatedValidMoves.push(move)
         }
         return updatedValidMoves
+    }
+
+    const handleQueenMovement = () => {
+        if (color_name_arr[draggingIndex].color === "white") {
+            return movementHandler(getPossibleMovesForAllBlackPieces, white_king, queenValidMoves)
+        }
+        else return movementHandler(getPossibleMovesForAllWhitePieces, black_king, queenValidMoves)
+    }
+
+    const handleRookMovement = () => {
+        if (color_name_arr[draggingIndex].color === "white") {
+            return movementHandler(getPossibleMovesForAllBlackPieces, white_king, rookValidMoves)
+        }
+        else return movementHandler(getPossibleMovesForAllWhitePieces, black_king, rookValidMoves)
+    }
+
+    const handleBishopMovement = () => {
+        if (color_name_arr[draggingIndex].color === "white") {
+            return movementHandler(getPossibleMovesForAllBlackPieces, white_king, bishopValidMoves)
+        }
+        else return movementHandler(getPossibleMovesForAllWhitePieces, black_king, bishopValidMoves)
+    }
+
+    const handleKnightMovement = () => {
+        if (color_name_arr[draggingIndex].color === "white") {
+            return movementHandler(getPossibleMovesForAllBlackPieces, white_king, knightValidMoves)
+        }
+        else return movementHandler(getPossibleMovesForAllWhitePieces, black_king, knightValidMoves)
     }
 
     const movePieces = () => {
@@ -503,7 +514,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
 
             if (color_name_arr[draggingIndex].name === "pawn"){
                 const white = color_name_arr[draggingIndex].color === "white"
-                const index = getIndexAtPosition(currX, currY)
+                const index = getIndexAtPosition(currX, currY, positions)
                 //find in between which x positions the dragging pawn is
                 let posXStart = currX - pieceImageShift
                 let posXEnd = currX + (squareSize - pieceImageShift)
@@ -558,13 +569,13 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             }
 
             if (color_name_arr[draggingIndex].name === "rook") {
-                if (!checkIfValid(rookValidMoves(currX, currY, getIndexAtPosition(currX, currY), positions))) resetPosition()
+                if (!checkIfValid(handleRookMovement())) resetPosition()
             }
             if (color_name_arr[draggingIndex].name === "knight") {
-                if (!checkIfValid(knightValidMoves(currX, currY))) resetPosition()
+                if (!checkIfValid(handleKnightMovement())) resetPosition()
             }
             if (color_name_arr[draggingIndex].name === "bishop") {
-                if (!checkIfValid(bishopValidMoves(currX, currY, getIndexAtPosition(currX, currY), positions))) resetPosition()
+                if (!checkIfValid(handleBishopMovement())) resetPosition()
             }
             if (color_name_arr[draggingIndex].name === "queen") {
                 if (!checkIfValid(handleQueenMovement())) resetPosition()
@@ -585,7 +596,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         const {currX, currY} = getCurrentPosition()
         if (color_name_arr[draggingIndex].name === "pawn"){
             const white = color_name_arr[draggingIndex].color === "white"
-            const index = getIndexAtPosition(currX, currY)
+            const index = getIndexAtPosition(currX, currY, positions)
             const {topLeft, topRight, inFront, topLeftIndex, topRightIndex} = pawnPossibleMoves(currX, currY, index)
 
             if (!isPieceOnSquare(inFront.x, inFront.y, positions)){
@@ -609,13 +620,13 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             }
         }
         if (color_name_arr[draggingIndex].name === "rook"){
-            greenSquares = rookValidMoves(currX, currY, getIndexAtPosition(currX, currY), positions)
+            greenSquares = handleRookMovement()
         }
         if (color_name_arr[draggingIndex].name === "knight"){
-            greenSquares = knightValidMoves(currX, currY)
+            greenSquares = handleKnightMovement()
         }
         if (color_name_arr[draggingIndex].name === "bishop"){
-            greenSquares = bishopValidMoves(currX, currY, getIndexAtPosition(currX, currY), positions)
+            greenSquares = handleBishopMovement()
         }
         if (color_name_arr[draggingIndex].name === "king"){
             greenSquares = handleKingMovement()
