@@ -1,6 +1,6 @@
-import {PieceType} from "../Utils/types";
+import {PieceType} from "../Canvas/types";
 import {MovePieces} from "./MovePieces"
-import {images} from "../Utils/utils";
+import {images} from "../Canvas/utils";
 
 const pieces: PieceType[] = []
 

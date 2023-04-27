@@ -4,7 +4,7 @@ export type PieceType = {
     y:number,
     color: "white" | "black",
     name: string,
-    isAlive: boolean
+    isAlive: boolean,
 }
 
 export type Moves = {
@@ -13,18 +13,22 @@ export type Moves = {
     index: number,
 }
 
+export type Positions = Omit<Moves, 'index'>;
+
 export type ColorPiece = {
     color: "white" | "black",
     name: string
 }
 
-export type IsAlive = {
+export type AlivePiece = {
     x: number,
     y: number,
     isAlive: boolean
 }
 
-export type Positions = Omit<Moves, 'index'>;
+export type ValidMoves = {
+    validMoves: (x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]) => Moves[]
+}
 
 export type AllMovesFunction = (board: Positions[], color_name_arr: ColorPiece[]) => Moves[];
 

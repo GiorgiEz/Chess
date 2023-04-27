@@ -1,13 +1,17 @@
-import {ColorPiece, Positions} from "../Utils/types";
-import {rookValidMoves} from "./Rook";
-import {bishopValidMoves} from "./Bishop";
+import {ColorPiece, Moves, Positions} from "../Canvas/types";
+import {Rook} from "./Rook";
+import {Bishop} from "./Bishop";
 
-export const whiteQueenIndex = 15
-export const blackQueenIndex = 12
+export class Queen{
+    whiteQueenIndex = 15
+    blackQueenIndex = 12
 
-export function queenValidMoves (currX: number, currY: number, index: number, board: Positions[], color_name_arr: ColorPiece[]) {
-    return [
-        ...rookValidMoves(currX, currY, index, board, color_name_arr),
-        ...bishopValidMoves(currX, currY, index, board, color_name_arr)
-    ]
+    validMoves(currX: number, currY: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[] {
+        const bishop = new Bishop()
+        const rook = new Rook()
+        return [
+            ...rook.validMoves(currX, currY, index, board, pieceColors),
+            ...bishop.validMoves(currX, currY, index, board, pieceColors)
+        ]
+    }
 }

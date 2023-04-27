@@ -26,14 +26,14 @@ export const images = {
     black_knight: blackKnight,
     black_king: blackKing,
     black_bishop: blackBishop,
-};
+}
 
 export const squareSize = 75;
 export const canvasSize = 600;
 export const imageSize = 50;
 export const shiftImage = 12.5;
 
-export function getCurrPos (draggingIndex: number, positions: Positions[]) {
+export function getCurrPos(draggingIndex: number, positions: Positions[]) {
     let currX = 0
     let currY = 0
     if (draggingIndex !== -1) {
@@ -44,7 +44,7 @@ export function getCurrPos (draggingIndex: number, positions: Positions[]) {
     return {currX, currY}
 }
 
-export function adjustPiecePositions (mousePosition: Positions) {
+export function adjustPiecePositions(mousePosition: Positions) {
     let {x, y} = mousePosition
     let nextSquare = squareSize;
     for (let square = 0; square !== canvasSize; square += squareSize) {
@@ -55,7 +55,7 @@ export function adjustPiecePositions (mousePosition: Positions) {
     return {x, y}
 }
 
-export function getIndexAtPosition (x: number, y: number, board: Positions[]) {
+export function getIndexAtPosition(x: number, y: number, board: Positions[]) {
     for (let i = 0; i < board.length; i++) {
         const { x: imageX, y: imageY } = board[i];
         if (x >= imageX && x <= imageX + imageSize && y >= imageY && y <= imageY + imageSize) return i;
@@ -67,16 +67,28 @@ export function isPieceOnSquare(x: number, y: number, board: Positions[]) {
     return board.some(pos => pos.x === x && pos.y === y);
 }
 
+export function hasMoved(board: Positions[], index: number, initialPos: Positions){
+    return board[index].x === initialPos.x && board[index].y === initialPos.y
+}
+
+export function includes(positionsArray: Positions[], allPositionsArray: Positions[]){
+    for (let move of positionsArray){
+        for (let posMoves of allPositionsArray){
+            if (move.x === posMoves.x && move.y === posMoves.y) {return true}
+        }
+    }
+    return false
+}
+
 // check if position where the king or the knight can move isn't blocked by same colored piece
-export function correctMoves (moves: Moves[], board: Positions[], dragIndex: number, color_name_arr: ColorPiece[]) {
+export function availableMoves(moves: Moves[], board: Positions[], dragIndex: number, color_name_arr: ColorPiece[]) {
     let validMoves: Moves[] = []
     for (let i = 0; i < moves.length; i++){
         const move = {x: moves[i].x, y: moves[i].y, index: moves[i].index}
         if (move.x >= 0 && move.x <= canvasSize && move.y >= 0 && move.y <= canvasSize) {
-            if (color_name_arr[move.index]) {
-                const sameColors = color_name_arr[move.index].color === color_name_arr[dragIndex].color
-                if (isPieceOnSquare(move.x, move.y, board) && !sameColors) validMoves.push(move)
-            } else validMoves.push(move)
+            const sameColors = color_name_arr[move.index]?.color === color_name_arr[dragIndex].color
+            if (!isPieceOnSquare(move.x, move.y, board)) validMoves.push(move)
+            else if (isPieceOnSquare(move.x, move.y, board) && !sameColors) validMoves.push(move)
         }
     }
     return validMoves

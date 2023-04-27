@@ -1,42 +1,14 @@
-import {Moves, ColorPiece, Positions, IsAlive} from "../Utils/types";
-import {getValidMovesForRookOrBishop} from "../Utils/utils";
-import Piece from "./Piece";
+import {Moves, ColorPiece, Positions} from "../Canvas/types";
+import {getValidMovesForRookOrBishop} from "../Canvas/utils";
 
-export function bishopValidMoves(currX: number, currY: number, index: number, board: Positions[], color_name_arr: ColorPiece[]){
-    let validMoves: Moves[] = [];
+export class Bishop{
+    //11 and 23 is for white bishops and 8 and 20 is for black bishops
+    Indexes = [11, 23, 8, 20]
 
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(1, 1, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(1, -1, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(-1, 1, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(-1, -1, currX, currY, index, board, color_name_arr));
-
-    return validMoves
-}
-
-export class Bishop extends Piece{
-    constructor(
-        src: string,
-        x: number,
-        y:number,
-        color: "white" | "black",
-        name: string,
-        isAlive: boolean,
-        validMoves: Positions[],
-        board: IsAlive[],
-    ) {
-        super(src, x, y, color, name, isAlive, validMoves, board);
-    }
-
-    pieceValidMoves(pieceColors: ColorPiece[]): Positions[] {
-        const index = this.pieceIndex()
-        return this.validMoves.concat
-            (getValidMovesForRookOrBishop
-                (1, 1, this.x, this.y, index, this.board, pieceColors))
-                    .concat(getValidMovesForRookOrBishop
-                        (1, -1, this.x, this.y, index, this.board, pieceColors))
-                        .concat(getValidMovesForRookOrBishop
-                            (-1, 1, this.x, this.y, index, this.board, pieceColors))
-                            .concat(getValidMovesForRookOrBishop
-                                (-1, -1, this.x, this.y, index, this.board, pieceColors))
+    validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[] {
+        return getValidMovesForRookOrBishop(1, 1, x, y, index, board, pieceColors)
+            .concat(getValidMovesForRookOrBishop(1, -1, x, y, index, board, pieceColors))
+            .concat(getValidMovesForRookOrBishop(-1, 1, x, y, index, board, pieceColors))
+            .concat(getValidMovesForRookOrBishop(-1, -1, x, y, index, board, pieceColors))
     }
 }

@@ -1,12 +1,19 @@
-import {Moves, ColorPiece, Positions} from "../Utils/types";
-import {getValidMovesForRookOrBishop} from "../Utils/utils";
+import {Moves, ColorPiece, Positions} from "../Canvas/types";
+import {getValidMovesForRookOrBishop} from "../Canvas/utils";
 
-export function rookValidMoves(currX: number, currY: number, index: number, board: Positions[], color_name_arr: ColorPiece[]){
-    let validMoves: Moves[] = [];
+export class Rook{
+    Indexes = [3, 31, 0, 28]
 
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(-1, 0, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(1, 0, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(0, -1, currX, currY, index, board, color_name_arr));
-    validMoves = validMoves.concat(getValidMovesForRookOrBishop(0, 1, currX, currY, index, board, color_name_arr));
-    return validMoves
+    //initial positions for each rook
+    static leftWhiteRook = {x: 12.5, y: 537.5, index: 3, hasMoved: false}
+    static rightWhiteRook = {x: 537.5, y: 537.5, index: 31, hasMoved: false}
+    static leftBlackRook = {x: 12.5, y: 12.5, index: 0, hasMoved: false}
+    static rightBlackRook = {x: 537.5, y: 12.5, index: 28, hasMoved: false}
+
+    validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[] {
+        return getValidMovesForRookOrBishop(-1, 0, x, y, index, board, pieceColors)
+            .concat(getValidMovesForRookOrBishop(1, 0, x, y, index, board, pieceColors))
+            .concat(getValidMovesForRookOrBishop(0, -1, x, y, index, board, pieceColors))
+            .concat(getValidMovesForRookOrBishop(0, 1, x, y, index, board, pieceColors))
+    }
 }

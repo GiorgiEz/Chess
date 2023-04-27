@@ -1,20 +1,20 @@
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo} from "react";
 import "./ChessBoard.css"
-import {Moves, PieceType, Positions} from "../Utils/types";
+import {Moves, PieceType, Positions, ValidMoves} from "../Canvas/types";
+import {Canvas} from "../Canvas/Canvas";
 
-import {pawnPossibleMoves, pawnPromotionScreen, promotePawn, promoteScreenOn} from "../Pieces/Pawn";
-import {rookValidMoves} from "../Pieces/Rook";
-import {Bishop, bishopValidMoves} from "../Pieces/Bishop";
-import {knightValidMoves} from "../Pieces/Knight";
-import {queenValidMoves} from "../Pieces/Queen";
-import {kingMovementHandler, black_king_index, white_king_index} from "../Pieces/King";
-import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "../Utils/AllMoves";
+import {Pawn} from "../Pieces/Pawn";
+import {Rook} from "../Pieces/Rook";
+import {Bishop} from "../Pieces/Bishop";
+import {Knight} from "../Pieces/Knight";
+import {Queen} from "../Pieces/Queen";
+import {King} from "../Pieces/King";
+import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "../Pieces/AllMoves";
 
 import {
-    canvasSize, squareSize, imageSize,
-    adjustPiecePositions, getCurrPos, getIndexAtPosition, isPieceOnSquare, movementHandler, images
-} from "../Utils/utils";
-import Piece from "../Pieces/Piece";
+    canvasSize, imageSize,
+    adjustPiecePositions, getCurrPos, getIndexAtPosition, isPieceOnSquare, movementHandler
+} from "../Canvas/utils";
 
 interface Props {
     pieces: PieceType[];
@@ -26,11 +26,9 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     let mousePosition = {x: 0, y: 0}
     let greenSquares: Positions[] = []
     let redSquares: Positions[] = []
-    const pieceColors = pieces.map(({color, name}) => ({name, color}))
-    const [positions, setPositions] = useState(pieces.map(({x,y, isAlive}) => ({x, y, isAlive})));
 
-    let white_king = {x: positions[white_king_index].x, y: positions[white_king_index].y}
-    let black_king = {x: positions[black_king_index].x, y: positions[black_king_index].y}
+    const pieceColors = pieces.map(({color, name}) => ({name, color}))
+    const positions = pieces.map(({x,y, isAlive}) => ({x, y, isAlive}))
 
     let pieceImages: HTMLImageElement[] = useMemo(() => {
         const images = [];
@@ -40,7 +38,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             images.push(image)
         }
         return images
-    }, [pieces]);
+    }, [pieces])
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -69,17 +67,20 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     function onMouseDown (event: React.MouseEvent<HTMLCanvasElement>) {
         const mousePositions = getMousePositions(event)
         const index = getIndexAtPosition(mousePositions.x, mousePositions.y, positions);
-        if (index !== -1 && !promoteScreenOn) {
+        if (index !== -1 && !Pawn.promoteScreenOn) {
             draggingIndex = index
             mousePosition = {x: mousePositions.x, y: mousePositions.y};
-            colorSquares()
+            highlightValidMoveSquares()
         }
-        promotePawn(mousePosition, pieceColors, pieces, pieceImages)
+        const pawn = new Pawn()
+        pawn.promotePawn(mousePosition, pieceColors, pieces, pieceImages)
     }
 
     const onMouseUp = () => {
         movePieces()
         draggingIndex = -1;
+        greenSquares = []
+        redSquares = []
     }
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -99,17 +100,15 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         mousePosition = getMousePositions(event);
     }
 
+    // check if the position where the piece is moved is in the valid positions array
     function checkIfValid (validMoves: Moves[]) {
         let {x, y} = adjustPiecePositions(mousePosition)
-        let isValidMove = false;
         for (let move of validMoves) {
             if (x === move.x && y === move.y) {
-                isValidMove = true
-                killPieces({x: move.x, y: move.y})
-                break
+                killPieces({x: move.x, y: move.y}); return true
             }
         }
-        return isValidMove
+        return false
     }
 
     function killPieces (killedPiecePos: Positions) {
@@ -121,61 +120,50 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         return killedPieceIndex
     }
 
-    function handleKingMovement() {
-        if (pieceColors[draggingIndex].color === "white")
-            return kingMovementHandler(white_king_index, positions, pieceColors,
-                redSquares, getPossibleMovesForAllBlackPieces)
-        else return kingMovementHandler(black_king_index, positions, pieceColors,
-            redSquares, getPossibleMovesForAllWhitePieces)
+    const handleKingMovement = () =>  {
+        const king = new King()
+        if (pieceColors[draggingIndex].color === "white") {
+            return king.kingMovementHandler(King.white_king.index, redSquares,
+                positions, pieceColors, getPossibleMovesForAllBlackPieces)
+        }
+        else return king.kingMovementHandler(King.black_king.index, redSquares,
+                positions, pieceColors, getPossibleMovesForAllWhitePieces)
+    }
+
+    const pieceMovementHandler = (piece: ValidMoves) => {
+        let whiteKing = {x: positions[King.white_king.index].x, y: positions[King.white_king.index].y}
+        let blackKing = {x: positions[King.black_king.index].x, y: positions[King.black_king.index].y}
+        if (pieceColors[draggingIndex].color === "white") {
+            return movementHandler(whiteKing, draggingIndex, positions, pieceColors, redSquares,
+                getPossibleMovesForAllBlackPieces, piece.validMoves)
+        }
+        else return movementHandler(blackKing, draggingIndex, positions, pieceColors, redSquares,
+            getPossibleMovesForAllWhitePieces, piece.validMoves)
     }
 
     const handleQueenMovement = () => {
-        if (pieceColors[draggingIndex].color === "white") {
-            return movementHandler(white_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllBlackPieces, queenValidMoves)
-        }
-        else return movementHandler(black_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllWhitePieces, queenValidMoves)
+        return pieceMovementHandler(new Queen())
     }
 
     const handleRookMovement = () => {
-        if (pieceColors[draggingIndex].color === "white") {
-            return movementHandler(white_king, draggingIndex, positions, pieceColors, redSquares,
-                getPossibleMovesForAllBlackPieces, rookValidMoves)
-        }
-        else return movementHandler(black_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllWhitePieces, rookValidMoves)
+        return pieceMovementHandler(new Rook())
     }
 
     const handleBishopMovement = () => {
-        if (pieceColors[draggingIndex].color === "white") {
-            return movementHandler(white_king, draggingIndex, positions, pieceColors, redSquares,
-                getPossibleMovesForAllBlackPieces,bishopValidMoves)
-        }
-        else return movementHandler(black_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllWhitePieces, bishopValidMoves)
+        return pieceMovementHandler(new Bishop())
     }
 
     const handleKnightMovement = () => {
-        if (pieceColors[draggingIndex].color === "white") {
-            return movementHandler(white_king, draggingIndex, positions, pieceColors, redSquares,
-                getPossibleMovesForAllBlackPieces, knightValidMoves)
-        }
-        else return movementHandler(black_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllWhitePieces, knightValidMoves)
+        return pieceMovementHandler(new Knight())
     }
 
     const handlePawnMovement = () => {
-        if (pieceColors[draggingIndex].color === "white") {
-            return movementHandler(white_king, draggingIndex, positions, pieceColors, redSquares,
-                getPossibleMovesForAllBlackPieces, pawnPossibleMoves)
-        }
-        else return movementHandler(black_king, draggingIndex, positions, pieceColors, redSquares,
-            getPossibleMovesForAllWhitePieces, pawnPossibleMoves)
+        return pieceMovementHandler(new Pawn())
     }
 
     const movePieces = () => {
         if (draggingIndex !== -1 && pieces[draggingIndex].isAlive) {
+
             const {currX, currY} = getCurrPos(draggingIndex, positions)
             let {x, y} = adjustPiecePositions(mousePosition)
 
@@ -183,6 +171,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 x = currX
                 y = currY
             }
+
             if (pieceColors[draggingIndex].name === "pawn" && !checkIfValid(handlePawnMovement())) resetPosition()
             if (pieceColors[draggingIndex].name === "rook" && !checkIfValid(handleRookMovement())) resetPosition()
             if (pieceColors[draggingIndex].name === "knight" && !checkIfValid(handleKnightMovement())) resetPosition()
@@ -190,22 +179,12 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             if (pieceColors[draggingIndex].name === "queen" && !checkIfValid(handleQueenMovement())) resetPosition()
             if (pieceColors[draggingIndex].name === "king" && !checkIfValid(handleKingMovement())) resetPosition()
 
-            const positionsArr = [...positions]
-            positionsArr[draggingIndex] = {x: x, y: y, isAlive: true}
-            setPositions(positionsArr)
+            positions[draggingIndex] = {x: x, y: y, isAlive: true}
         }
     }
 
-    const colorSquares = () => {
-        if (pieceColors[draggingIndex].name === "pawn"){
-            for (let move of handlePawnMovement()){
-                if (!isPieceOnSquare(move.x, move.y, positions)) greenSquares.push(move)
-                else if (isPieceOnSquare(move.x, move.y, positions) &&
-                    pieceColors[move.index].color !== pieceColors[draggingIndex].color){
-                    redSquares.push(move)
-                }
-            }
-        }
+    const highlightValidMoveSquares = () => {
+        if (pieceColors[draggingIndex].name === "pawn") greenSquares = handlePawnMovement()
         if (pieceColors[draggingIndex].name === "rook") greenSquares = handleRookMovement()
         if (pieceColors[draggingIndex].name === "knight") greenSquares = handleKnightMovement()
         if (pieceColors[draggingIndex].name === "bishop") greenSquares = handleBishopMovement()
@@ -213,75 +192,32 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         if (pieceColors[draggingIndex].name === "queen") greenSquares = handleQueenMovement()
     }
 
-    const drawGreenCircles = (ctx: CanvasRenderingContext2D) => {
-        for (let pos of greenSquares) {
-            const gradient = ctx.createRadialGradient(pos.x + 25, pos.y + 25,
-                0, pos.x + 25, pos.y + 25, squareSize / 4
-            );
-            gradient.addColorStop(0, "#06f67d");
-            gradient.addColorStop(1, "#066e52");
-
-            ctx.beginPath();
-            ctx.arc(pos.x + 25, pos.y + 25, squareSize / 8, 0, 2 * Math.PI);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-        }
-    }
-
-    const drawRedBackground = (ctx: CanvasRenderingContext2D) => {
-        for (let pos of redSquares) {
-            ctx.fillStyle = "#b20101"
-            ctx.fillRect(pos.x - 10, pos.y - 10, squareSize - 5, squareSize - 5);
-        }
-    }
-
-    const drawBoardBackground = (ctx: CanvasRenderingContext2D) => {
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const x = col * squareSize;
-                const y = row * squareSize;
-                ctx.fillStyle = (row + col) % 2 === 0 ? "#1A233B" : "#808080"
-                ctx.fillRect(x, y, squareSize, squareSize);
-            }
-        }
-    }
-
-    const drawPieces = (ctx: CanvasRenderingContext2D) => {
-        for (let i = 0; i < pieces.length; i++) {
-            if (positions[i].isAlive) {
-                const image = pieceImages[i];
-                let {x, y} = positions[i];
-                // If the piece is being dragged, draw it at the current mouse position
-                if (i === draggingIndex) {
-                    x = mousePosition.x;
-                    y = mousePosition.y;
-                }
-                ctx.drawImage(image, x, y, imageSize, imageSize);
-            }
-        }
-    }
-
     const render = (ctx: CanvasRenderingContext2D) => {
-        ctx.clearRect(0, 0, canvasSize, canvasSize);
-        drawBoardBackground(ctx)
-        drawGreenCircles(ctx)
-        drawRedBackground(ctx)
-        drawPieces(ctx)
+        const king = new King()
+        const canvas = new Canvas(ctx)
 
-        pawnPromotionScreen(positions, ctx, pieceColors)
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+        canvas.drawBoardBackground()
+        canvas.drawGreenCircles(greenSquares)
+        canvas.drawRedBackground(redSquares)
+        canvas.drawPieces(positions, pieceImages, draggingIndex, mousePosition)
+        canvas.drawCoordinates()
+        canvas.promotionScreen(positions, pieceColors, mousePosition)
+
+        king.moveRook(mousePosition, positions)
+        king.isMoved(positions)
 
         requestAnimationFrame(() => render(ctx));
     }
 
     return (
-        <div>
-            <canvas
-                className={"chessboard"}
-                ref={canvasRef}
-                width={canvasSize}
-                height={canvasSize}
-                onMouseDown={onMouseDown}
-            />
-        </div>
+        <canvas
+            className={"chessboard"}
+            ref={canvasRef}
+            width={canvasSize}
+            height={canvasSize}
+            onMouseDown={onMouseDown}
+        />
     )
 }
