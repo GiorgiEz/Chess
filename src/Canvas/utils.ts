@@ -1,4 +1,4 @@
-import {Moves, ColorPiece, Positions, AllMovesFunction, ValidMovesFunction} from "./types";
+import {Moves, ColorPiece, Positions, AllMovesFunction, ValidMovesFunction, AlivePiece} from "./types";
 
 import whitePawn from '../assets/white-pawn.png';
 import whiteRook from '../assets/white-rook.png';
@@ -12,6 +12,14 @@ import blackQueen from '../assets/black-queen.png';
 import blackKnight from '../assets/black-knight.png';
 import blackKing from '../assets/black-king.png';
 import blackBishop from '../assets/black-bishop.png';
+import restartButton from '../assets/restart_button.png'
+import restartButtonHover from '../assets/restart_button_hover.png'
+
+import {Canvas} from "./Canvas";
+import {allPossibleMoves} from "../Pieces/AllMoves";
+import {initialBoard} from "../ChessBoard/ChessBoard";
+import {Rook} from "../Pieces/Rook";
+import {King} from "../Pieces/King";
 
 export const images = {
     white_pawn: whitePawn,
@@ -26,12 +34,14 @@ export const images = {
     black_knight: blackKnight,
     black_king: blackKing,
     black_bishop: blackBishop,
+    restart_button: restartButton,
+    restart_button_hover: restartButtonHover,
 }
 
-export const squareSize = 75;
-export const canvasSize = 600;
-export const imageSize = 50;
-export const shiftImage = 12.5;
+export var squareSize = 75;
+export var canvasSize = 600;
+export var imageSize = 50;
+export var shiftImage = 12.5;
 
 export function getCurrPos(draggingIndex: number, positions: Positions[]) {
     let currX = 0
@@ -65,10 +75,6 @@ export function getIndexAtPosition(x: number, y: number, board: Positions[]) {
 
 export function isPieceOnSquare(x: number, y: number, board: Positions[]) {
     return board.some(pos => pos.x === x && pos.y === y);
-}
-
-export function hasMoved(board: Positions[], index: number, initialPos: Positions){
-    return board[index].x === initialPos.x && board[index].y === initialPos.y
 }
 
 export function includes(positionsArray: Positions[], allPositionsArray: Positions[]){
@@ -134,4 +140,54 @@ export function movementHandler(
         }
     }
     return updatedValidMoves
+}
+
+function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
+    for (let i = 0; i < pieceColors.length; i++){
+        if (pieceColors[i].name !== "king" && positions[i].isAlive) return false
+    }
+    return true
+}
+
+export function checkmateOrStalemate(positions: AlivePiece[], pieceColors: ColorPiece[]){
+    const whiteMoves = allPossibleMoves(positions, pieceColors, []).whiteValidMoves
+    const blackMoves = allPossibleMoves(positions, pieceColors, []).blackValidMoves
+
+    const whiteKingUnderAttack = blackMoves.filter(move => move.index === King.white_king.index)
+    const blackKingUnderAttack = whiteMoves.filter(move => move.index === King.black_king.index)
+
+    if (!whiteMoves.length && whiteKingUnderAttack.length) Canvas.blackWon = true
+    if (!blackMoves.length && blackKingUnderAttack.length) Canvas.whiteWon = true
+
+    if (!whiteMoves.length && !whiteKingUnderAttack.length) Canvas.staleMate = true
+    if (!blackMoves.length && !blackKingUnderAttack.length) Canvas.staleMate = true
+
+    if (areOnlyKingsAlive(positions, pieceColors)) Canvas.staleMate = true
+}
+
+export function restartGame(mousePosition: Positions, board: AlivePiece[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
+    let {x, y} = mousePosition
+    if (Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate) {
+        if (x >= canvasSize / 2 - squareSize / 2 && x <= canvasSize / 2 + squareSize && y
+            >= canvasSize / 2 && y <= canvasSize / 2 + 1.5 * squareSize) {
+            Canvas.whiteWon = false
+            Canvas.blackWon = false
+            Canvas.staleMate = false
+            Canvas.turns = 1
+            Canvas.killedPieces = []
+            King.black_king.hasMoved = false
+            King.white_king.hasMoved = false
+            Rook.leftBlackRook.hasMoved = false
+            Rook.rightBlackRook.hasMoved = false
+            Rook.leftWhiteRook.hasMoved = false
+            Rook.leftBlackRook.hasMoved = false
+            for (let i = 0; i < board.length; i++) {
+                board[i].x = initialBoard[i].x
+                board[i].y = initialBoard[i].y
+                board[i].isAlive = true
+                pieceColors[i].name = initialBoard[i].name
+                pieceImages[i].src = initialBoard[i].src
+            }
+        }
+    }
 }

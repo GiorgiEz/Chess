@@ -1,8 +1,8 @@
 import {AllMovesFunction, ColorPiece, Moves, Positions} from "../Canvas/types";
 import {Rook} from "./Rook";
 import {
-    canvasSize, shiftImage, squareSize,
-    availableMoves, getCurrPos, getIndexAtPosition, hasMoved, includes, isPieceOnSquare,
+    availableMoves, getCurrPos, getIndexAtPosition, includes, isPieceOnSquare,
+    squareSize, canvasSize, shiftImage
 } from "../Canvas/utils";
 import {
     getPossibleMovesForBishops, getPossibleMovesForKnights, getPossibleMovesForPawns,
@@ -15,9 +15,6 @@ export class King {
     static black_king = {x: canvasSize/2 + shiftImage, y: shiftImage, index: 16, hasMoved: false}
 
     //positions where king needs to move for castling
-    static leftTwoSquares = {x: 2*squareSize + shiftImage}
-    static rightTwoSquares = {x: canvasSize - 2*squareSize + shiftImage}
-
     validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[]{
         const left = {
             x: x - squareSize, y: y,
@@ -53,11 +50,14 @@ export class King {
         }
         let validMoves: Moves[] = [left, right, down, up, downLeft, downRight, upLeft, upRight]
 
+        const leftTwoSquares = {x: 2*squareSize + shiftImage}
+        const rightTwoSquares = {x: canvasSize - 2*squareSize + shiftImage}
+
         //all 3 positions between king and the rook on the queen side
         function getQueenSideMoves(x: number, board: Positions[]){
             return [
                 {x: x, y, index: getIndexAtPosition(x, y, board)},
-                {x: King.leftTwoSquares.x, y: y, index: getIndexAtPosition(King.leftTwoSquares.x, y, board)},
+                {x: leftTwoSquares.x, y: y, index: getIndexAtPosition(leftTwoSquares.x, y, board)},
                 {x: canvasSize/2 - x + 2*shiftImage, y, index: getIndexAtPosition(x-squareSize/2+shiftImage, y, board)}
             ]
         }
@@ -66,7 +66,7 @@ export class King {
         function getKingSideMoves(x: number, board: Positions[]){
             return [
                 {x: x, y, index: getIndexAtPosition(x, y, board)},
-                {x: King.rightTwoSquares.x, y, index: getIndexAtPosition(King.rightTwoSquares.x, y, board)}
+                {x: rightTwoSquares.x, y, index: getIndexAtPosition(rightTwoSquares.x, y, board)}
             ]
         }
 
@@ -92,12 +92,12 @@ export class King {
         if (index === King.white_king.index && !King.white_king.hasMoved) {
             if (!Rook.leftWhiteRook.hasMoved) {
                 if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(queenSideMoves, allBlackPieceMoves)) {
-                    validMoves.push({x: King.leftTwoSquares.x, y, index: getIndexAtPosition(King.leftTwoSquares.x, y, board)})
+                    validMoves.push({x: leftTwoSquares.x, y, index: getIndexAtPosition(leftTwoSquares.x, y, board)})
                 }
             }
             if (!Rook.rightWhiteRook.hasMoved) {
                 if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(kingSideMoves, allBlackPieceMoves)) {
-                    validMoves.push({x: King.rightTwoSquares.x, y: y, index: getIndexAtPosition(King.rightTwoSquares.x, y, board)})
+                    validMoves.push({x: rightTwoSquares.x, y: y, index: getIndexAtPosition(rightTwoSquares.x, y, board)})
                 }
             }
         }
@@ -105,39 +105,16 @@ export class King {
         if (index === King.black_king.index && !King.black_king.hasMoved) {
             if (!Rook.leftBlackRook.hasMoved) {
                 if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(queenSideMoves, allWhitePieceMoves)) {
-                    validMoves.push({x: King.leftTwoSquares.x, y, index: getIndexAtPosition(King.leftTwoSquares.x, y, board)})
+                    validMoves.push({x: leftTwoSquares.x, y, index: getIndexAtPosition(leftTwoSquares.x, y, board)})
                 }
             }
             if (!Rook.rightBlackRook.hasMoved) {
                 if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(kingSideMoves, allWhitePieceMoves)) {
-                    validMoves.push({x: King.rightTwoSquares.x, y: y, index: getIndexAtPosition(King.rightTwoSquares.x, y, board)})
+                    validMoves.push({x: rightTwoSquares.x, y: y, index: getIndexAtPosition(rightTwoSquares.x, y, board)})
                 }
             }
         }
         return availableMoves(validMoves, board, index, pieceColors)
-    }
-
-    isMoved(board: Positions[]){
-        if (!hasMoved(board, King.white_king.index, King.white_king)) King.white_king.hasMoved = true
-        if (!hasMoved(board, King.black_king.index, King.black_king)) King.black_king.hasMoved = true
-        if (!hasMoved(board, Rook.leftWhiteRook.index, Rook.leftWhiteRook)) Rook.leftWhiteRook.hasMoved = true
-        if (!hasMoved(board, Rook.rightWhiteRook.index, Rook.rightWhiteRook)) Rook.rightWhiteRook.hasMoved = true
-        if (!hasMoved(board, Rook.leftBlackRook.index, Rook.leftBlackRook)) Rook.leftBlackRook.hasMoved = true
-        if (!hasMoved(board, Rook.rightBlackRook.index, Rook.rightBlackRook)) Rook.rightBlackRook.hasMoved = true
-    }
-
-    //Move the rook to its position when castling happens
-    moveRook(mousePos: Positions, board: Positions[]){
-        const rookKingSidePos = canvasSize/2 + squareSize + shiftImage
-        const rookQueenSidePos = canvasSize/2 + shiftImage - squareSize
-        if (!King.white_king.hasMoved) {
-            if (board[King.white_king.index].x === King.rightTwoSquares.x) board[Rook.rightWhiteRook.index].x = rookKingSidePos
-            if (board[King.white_king.index].x === King.leftTwoSquares.x) board[Rook.leftWhiteRook.index].x = rookQueenSidePos
-        }
-        if (!King.black_king.hasMoved) {
-            if (board[King.black_king.index].x === King.rightTwoSquares.x) board[Rook.rightBlackRook.index].x = rookKingSidePos
-            if (board[King.black_king.index].x === King.leftTwoSquares.x) board[Rook.leftBlackRook.index].x = rookQueenSidePos
-        }
     }
 
     //king cant move to the position where enemy pieces can move
