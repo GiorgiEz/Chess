@@ -1,6 +1,6 @@
-import {PieceType} from "../Canvas/types";
+import {PieceType} from "../types";
 import {MovePieces} from "./MovePieces"
-import {images} from "../Canvas/utils";
+import {images} from "../exports";
 
 const pieces: PieceType[] = []
 export const initialBoard: PieceType[] = []
@@ -15,7 +15,7 @@ const whitePieces = [
 ]
 const namesArray = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
 
-for (let pos = 12.5, i = 0; i < blackPieces.length; pos += 75, i++) {
+for (let pos = 87.5, i = 0; i < blackPieces.length; pos += 75, i++) {
     pieces.push({src: blackPieces[i], x: pos, y: 12.5, color: "black", name: namesArray[i], isAlive: true})
     pieces.push({src: images.black_pawn, x: pos, y: 87.5, color: "black", name:"pawn", isAlive: true})
     pieces.push({src: images.white_pawn, x: pos, y: 462.5, color: "white", name:"pawn", isAlive: true})

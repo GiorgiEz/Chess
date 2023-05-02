@@ -1,11 +1,12 @@
-import {ColorPiece, Moves, Positions, ValidMovesFunction} from "../Canvas/types";
-import {getCurrPos, getIndexAtPosition, movementHandler, squareSize, canvasSize} from "../Canvas/utils";
+import {ColorPiece, Moves, Positions, ValidMovesFunction} from "../types";
+import {getCurrPos, getIndexAtPosition,} from "../Canvas/utils";
 import {Pawn} from "./Pawn";
 import {Bishop} from "./Bishop";
 import {King} from "./King";
 import {Rook} from "./Rook";
 import {Knight} from "./Knight";
 import {Queen} from "./Queen";
+import {movementHandler} from "./Movements";
 
 // function to get all the positions where pieces can move
 export function simulateMoves(indexArray: number[], board: Positions[],
@@ -58,57 +59,39 @@ export function getPossibleMovesForKing(board: Positions[], pieceColors: ColorPi
 }
 
 export function getPossibleMovesForPawns(board: Positions[], pieceColors: ColorPiece[]){
-    let blackMoves: Moves[] = []
-    let whiteMoves: Moves[] = []
-    const pawn = new Pawn()
+    const indexes = []
 
-    let whiteIndex = pawn.leftMostWhitePawnIndex
-    let blackIndex = pawn.leftMostBlackPawnIndex
+    let whiteIndex = 2
+    let blackIndex = 1
     while (whiteIndex < board.length){
-        let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
-        let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
-
-        const topLeftWhite = {
-            x: currXWhite - squareSize,
-            y: currYWhite - squareSize,
-            index: getIndexAtPosition(currXWhite - squareSize, currYWhite - squareSize, board)
-        }
-        const topRightWhite = {
-            x: currXWhite + squareSize,
-            y: currYWhite - squareSize,
-            index: getIndexAtPosition(currXWhite + squareSize, currYWhite - squareSize, board)
-        }
-        const topLeftBlack = {
-            x: currXBlack - squareSize,
-            y: currYBlack + squareSize,
-            index: getIndexAtPosition(currXBlack - squareSize, currYBlack + squareSize, board)
-        }
-        const topRightBlack = {
-            x: currXBlack + squareSize,
-            y: currYBlack + squareSize,
-            index: getIndexAtPosition(currXBlack + squareSize, currYBlack + squareSize, board)
-        }
-
-        if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === "pawn") {
-            if (topLeftWhite.x >= 0 && topLeftWhite.x <= canvasSize && topLeftWhite.y >= 0 && topLeftWhite.y <= canvasSize) {
-                whiteMoves.push(topLeftWhite)
-            }
-            if (topRightWhite.x >= 0 && topRightWhite.x <= canvasSize && topRightWhite.y >= 0 && topRightWhite.y <= canvasSize) {
-                whiteMoves.push(topRightWhite)
-            }
-        }
-        if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === "pawn") {
-            if (topLeftBlack.x >= 0 && topLeftBlack.x <= canvasSize && topLeftBlack.y >= 0 && topLeftBlack.y <= canvasSize) {
-                blackMoves.push(topLeftBlack)
-            }
-            if (topRightBlack.x >= 0 && topRightBlack.x <= canvasSize && topRightBlack.y >= 0 && topRightBlack.y <= canvasSize) {
-                blackMoves.push(topRightBlack)
-            }
-        }
+        if (pieceColors[whiteIndex].name === "pawn") indexes.push(whiteIndex)
+        if (pieceColors[blackIndex].name === "pawn") indexes.push(blackIndex)
         whiteIndex += 4 // next white pawn
         blackIndex += 4 // next black pawn
     }
-    return {whiteMoves, blackMoves}
+    const pawn = new Pawn()
+    return simulateMoves(indexes, board, pieceColors, pawn.validMoves)
+}
+
+export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: ColorPiece[]) {
+    let blackPositions: Positions[] = []
+    let whitePositions: Positions[] = []
+
+    let whiteIndex = 2
+    let blackIndex = 1
+    while (whiteIndex < board.length) {
+        let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
+        let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
+
+        if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === "pawn")
+            whitePositions.push({x: currXWhite, y: currYWhite})
+        if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === "pawn")
+            blackPositions.push({x: currXBlack, y: currYBlack})
+
+        whiteIndex += 4 // next white pawn
+        blackIndex += 4 // next black pawn
+    }
+    return {whitePositions, blackPositions}
 }
 
 export function getPossibleMovesForAllBlackPieces(board: Positions[], pieceColors: ColorPiece[]){
@@ -134,66 +117,66 @@ export function getPossibleMovesForAllWhitePieces(board: Positions[], pieceColor
 }
 
 //Find all moves to determine if it's a checkmate or not
-export function allPossibleMoves(positions: Positions[], pieceColors: ColorPiece[], redSquares: Positions[]){
+export function allPossibleMoves(board: Positions[], pieceColors: ColorPiece[], redSquares: Positions[]){
     const whiteValidMoves = []
     const blackValidMoves = []
     const king = new King()
 
-    let whiteKing = {x: positions[King.white_king.index].x, y: positions[King.white_king.index].y}
-    let blackKing = {x: positions[King.black_king.index].x, y: positions[King.black_king.index].y}
+    let whiteKing = {x: board[King.white_king.index].x, y: board[King.white_king.index].y}
+    let blackKing = {x: board[King.black_king.index].x, y: board[King.black_king.index].y}
 
     for (let i = 0; i < pieceColors.length; i++){
         if (pieceColors[i].color === "white"){
             switch (pieceColors[i].name){
                 case "queen":
-                    whiteValidMoves.push(...movementHandler(whiteKing, i, positions, pieceColors, redSquares,
+                    whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Queen().validMoves))
                     break
                 case "king":
                     whiteValidMoves.push(...king.kingMovementHandler(King.white_king.index, redSquares,
-                        positions, pieceColors, getPossibleMovesForAllBlackPieces))
+                        board, pieceColors, getPossibleMovesForAllBlackPieces))
                     break
                 case "pawn":
-                    whiteValidMoves.push(...movementHandler(whiteKing, i, positions, pieceColors, redSquares,
+                    whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Pawn().validMoves))
                     break
                 case "rook":
-                    whiteValidMoves.push(...movementHandler(whiteKing, i, positions, pieceColors, redSquares,
+                    whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Rook().validMoves))
                     break
                 case "bishop":
-                    whiteValidMoves.push(...movementHandler(whiteKing, i, positions, pieceColors, redSquares,
+                    whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Bishop().validMoves))
                     break
                 case "knight":
-                    whiteValidMoves.push(...movementHandler(whiteKing, i, positions, pieceColors, redSquares,
+                    whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Knight().validMoves))
                     break
             }
         } else {
             switch (pieceColors[i].name){
                 case "queen":
-                    blackValidMoves.push(...movementHandler(blackKing, i, positions, pieceColors, redSquares,
+                    blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Queen().validMoves))
                     break
                 case "king":
                     blackValidMoves.push(...king.kingMovementHandler(King.black_king.index, redSquares,
-                        positions, pieceColors, getPossibleMovesForAllWhitePieces))
+                        board, pieceColors, getPossibleMovesForAllWhitePieces))
                     break
                 case "pawn":
-                    blackValidMoves.push(...movementHandler(blackKing, i, positions, pieceColors, redSquares,
+                    blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Pawn().validMoves))
                     break
                 case "rook":
-                    blackValidMoves.push(...movementHandler(blackKing, i, positions, pieceColors, redSquares,
+                    blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Rook().validMoves))
                     break
                 case "bishop":
-                    blackValidMoves.push(...movementHandler(blackKing, i, positions, pieceColors, redSquares,
+                    blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Bishop().validMoves))
                     break
                 case "knight":
-                    blackValidMoves.push(...movementHandler(blackKing, i, positions, pieceColors, redSquares,
+                    blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Knight().validMoves))
                     break
             }

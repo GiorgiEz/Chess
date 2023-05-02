@@ -1,18 +1,19 @@
-import {AllMovesFunction, ColorPiece, Moves, Positions} from "../Canvas/types";
+import {AllMovesFunction, ColorPiece, Moves, Positions} from "../types";
 import {Rook} from "./Rook";
-import {
-    availableMoves, getCurrPos, getIndexAtPosition, includes, isPieceOnSquare,
-    squareSize, canvasSize, shiftImage
-} from "../Canvas/utils";
 import {
     getPossibleMovesForBishops, getPossibleMovesForKnights, getPossibleMovesForPawns,
     getPossibleMovesForQueens, getPossibleMovesForRooks
 } from "./AllMoves";
+import {
+    getCurrPos, getIndexAtPosition, includes, isPieceOnSquare,
+} from "../Canvas/utils";
+import {getValidMovesForKnightOrKing} from "./Movements";
+import {canvasWidth, shiftImage, squareSize} from "../exports";
 
-export class King {
+export class King{
     //King initial positions
-    static white_king = {x: canvasSize/2 + shiftImage, y: canvasSize - squareSize + shiftImage, index: 19, hasMoved: false}
-    static black_king = {x: canvasSize/2 + shiftImage, y: shiftImage, index: 16, hasMoved: false}
+    static white_king = {index: 19, hasMoved: false}
+    static black_king = {index: 16, hasMoved: false}
 
     //positions where king needs to move for castling
     validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[]{
@@ -50,15 +51,15 @@ export class King {
         }
         let validMoves: Moves[] = [left, right, down, up, downLeft, downRight, upLeft, upRight]
 
-        const leftTwoSquares = {x: 2*squareSize + shiftImage}
-        const rightTwoSquares = {x: canvasSize - 2*squareSize + shiftImage}
+        const leftTwoSquares = {x: 3*squareSize + shiftImage}
+        const rightTwoSquares = {x: canvasWidth - 3*squareSize + shiftImage}
 
         //all 3 positions between king and the rook on the queen side
         function getQueenSideMoves(x: number, board: Positions[]){
             return [
                 {x: x, y, index: getIndexAtPosition(x, y, board)},
                 {x: leftTwoSquares.x, y: y, index: getIndexAtPosition(leftTwoSquares.x, y, board)},
-                {x: canvasSize/2 - x + 2*shiftImage, y, index: getIndexAtPosition(x-squareSize/2+shiftImage, y, board)}
+                {x: canvasWidth/2 - x + 2*shiftImage, y, index: getIndexAtPosition(canvasWidth/2 - x + 2*shiftImage, y, board)}
             ]
         }
 
@@ -86,8 +87,8 @@ export class King {
         ]
 
         //add valid squares to make castling possible
-        const queenSideMoves = getQueenSideMoves(squareSize+shiftImage, board)
-        const kingSideMoves = getKingSideMoves(canvasSize/2+squareSize+shiftImage, board)
+        const queenSideMoves = getQueenSideMoves(2*squareSize+shiftImage, board)
+        const kingSideMoves = getKingSideMoves(canvasWidth/2+squareSize+shiftImage, board)
 
         if (index === King.white_king.index && !King.white_king.hasMoved) {
             if (!Rook.leftWhiteRook.hasMoved) {
@@ -114,7 +115,7 @@ export class King {
                 }
             }
         }
-        return availableMoves(validMoves, board, index, pieceColors)
+        return getValidMovesForKnightOrKing(validMoves, board, index, pieceColors)
     }
 
     //king cant move to the position where enemy pieces can move

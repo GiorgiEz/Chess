@@ -1,47 +1,10 @@
-import {Moves, ColorPiece, Positions, AllMovesFunction, ValidMovesFunction, AlivePiece} from "./types";
+import {ColorPiece, Positions, AlivePiece, PieceType} from "../types";
 
-import whitePawn from '../assets/white-pawn.png';
-import whiteRook from '../assets/white-rook.png';
-import whiteQueen from '../assets/white-queen.png';
-import whiteKnight from '../assets/white-knight.png';
-import whiteKing from '../assets/white-king.png';
-import whiteBishop from '../assets/white-bishop.png';
-import blackPawn from '../assets/black-pawn.png';
-import blackRook from '../assets/black-rook.png';
-import blackQueen from '../assets/black-queen.png';
-import blackKnight from '../assets/black-knight.png';
-import blackKing from '../assets/black-king.png';
-import blackBishop from '../assets/black-bishop.png';
-import restartButton from '../assets/restart_button.png'
-import restartButtonHover from '../assets/restart_button_hover.png'
-
-import {Canvas} from "./Canvas";
 import {allPossibleMoves} from "../Pieces/AllMoves";
-import {initialBoard} from "../ChessBoard/ChessBoard";
-import {Rook} from "../Pieces/Rook";
+import {Canvas} from "./Canvas";
 import {King} from "../Pieces/King";
-
-export const images = {
-    white_pawn: whitePawn,
-    white_rook: whiteRook,
-    white_queen: whiteQueen,
-    white_knight: whiteKnight,
-    white_king: whiteKing,
-    white_bishop: whiteBishop,
-    black_pawn: blackPawn,
-    black_rook: blackRook,
-    black_queen: blackQueen,
-    black_knight: blackKnight,
-    black_king: blackKing,
-    black_bishop: blackBishop,
-    restart_button: restartButton,
-    restart_button_hover: restartButtonHover,
-}
-
-export var squareSize = 75;
-export var canvasSize = 600;
-export var imageSize = 50;
-export var shiftImage = 12.5;
+import {Pawn} from "../Pieces/Pawn";
+import {canvasWidth, imageSize, shiftImage, sounds, squareSize} from "../exports";
 
 export function getCurrPos(draggingIndex: number, positions: Positions[]) {
     let currX = 0
@@ -57,7 +20,7 @@ export function getCurrPos(draggingIndex: number, positions: Positions[]) {
 export function adjustPiecePositions(mousePosition: Positions) {
     let {x, y} = mousePosition
     let nextSquare = squareSize;
-    for (let square = 0; square !== canvasSize; square += squareSize) {
+    for (let square = 0; square !== canvasWidth-squareSize; square += squareSize) {
         if (x >= square && x <= nextSquare) x = square + shiftImage;
         if (y < nextSquare && y >= square) y = square + shiftImage;
         nextSquare += squareSize;
@@ -86,62 +49,6 @@ export function includes(positionsArray: Positions[], allPositionsArray: Positio
     return false
 }
 
-// check if position where the king or the knight can move isn't blocked by same colored piece
-export function availableMoves(moves: Moves[], board: Positions[], dragIndex: number, color_name_arr: ColorPiece[]) {
-    let validMoves: Moves[] = []
-    for (let i = 0; i < moves.length; i++){
-        const move = {x: moves[i].x, y: moves[i].y, index: moves[i].index}
-        if (move.x >= 0 && move.x <= canvasSize && move.y >= 0 && move.y <= canvasSize) {
-            const sameColors = color_name_arr[move.index]?.color === color_name_arr[dragIndex].color
-            if (!isPieceOnSquare(move.x, move.y, board)) validMoves.push(move)
-            else if (isPieceOnSquare(move.x, move.y, board) && !sameColors) validMoves.push(move)
-        }
-    }
-    return validMoves
-}
-
-export function getValidMovesForRookOrBishop (
-    dx: number, dy: number, currX: number, currY: number, dragIndex: number, board: Positions[], color_name_arr: ColorPiece[]
-) {
-    let validMoves: Moves[] = [];
-    for (let square = squareSize; square < canvasSize; square += squareSize) {
-        const x = currX + square * dx;
-        const y = currY + square * dy;
-        const index = getIndexAtPosition(x, y, board);
-
-        if (x >= 0 && x <= canvasSize && y >= 0 && y <= canvasSize) {
-            const sameColors = color_name_arr[index]?.color === color_name_arr[dragIndex]?.color;
-            if (isPieceOnSquare(x, y, board) && sameColors) break;
-            else if (isPieceOnSquare(x, y, board) && !sameColors) {validMoves.push({x, y, index});break;}
-            validMoves.push({x, y, index});
-        }
-    }
-    return validMoves;
-}
-
-export function movementHandler(
-    king: Positions, draggingIndex: number, positions: Positions[], pieceColors: ColorPiece[], redSquares: Positions[],
-    allMovesFunction: AllMovesFunction, validMovesFunction: ValidMovesFunction
-) {
-    const {currX, currY} = getCurrPos(draggingIndex, positions)
-    const index = getIndexAtPosition(currX, currY, positions)
-    const updatedValidMoves = []
-    for (let move of validMovesFunction(currX, currY, index, positions, pieceColors)) {
-        const newBoard = positions.map(pos => ({...pos}));
-
-        const potentialKilledPiece = getIndexAtPosition(move.x, move.y, newBoard)
-        newBoard[index] = {x: move.x, y: move.y}
-        newBoard[potentialKilledPiece] = {x: -1000, y: -1000}
-
-        const allMoves = allMovesFunction(newBoard, pieceColors)
-        if (!isPieceOnSquare(king.x, king.y, allMoves)) {
-            if (potentialKilledPiece !== -1) redSquares.push({x: move.x, y: move.y})
-            updatedValidMoves.push(move)
-        }
-    }
-    return updatedValidMoves
-}
-
 function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
     for (let i = 0; i < pieceColors.length; i++){
         if (pieceColors[i].name !== "king" && positions[i].isAlive) return false
@@ -149,45 +56,62 @@ function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
     return true
 }
 
-export function checkmateOrStalemate(positions: AlivePiece[], pieceColors: ColorPiece[]){
-    const whiteMoves = allPossibleMoves(positions, pieceColors, []).whiteValidMoves
-    const blackMoves = allPossibleMoves(positions, pieceColors, []).blackValidMoves
+export function checkmateOrStalemate(board: AlivePiece[], pieceColors: ColorPiece[]){
+    const whiteMoves = allPossibleMoves(board, pieceColors, []).whiteValidMoves
+    const blackMoves = allPossibleMoves(board, pieceColors, []).blackValidMoves
 
     const whiteKingUnderAttack = blackMoves.filter(move => move.index === King.white_king.index)
     const blackKingUnderAttack = whiteMoves.filter(move => move.index === King.black_king.index)
 
-    if (!whiteMoves.length && whiteKingUnderAttack.length) Canvas.blackWon = true
-    if (!blackMoves.length && blackKingUnderAttack.length) Canvas.whiteWon = true
-
-    if (!whiteMoves.length && !whiteKingUnderAttack.length) Canvas.staleMate = true
-    if (!blackMoves.length && !blackKingUnderAttack.length) Canvas.staleMate = true
-
-    if (areOnlyKingsAlive(positions, pieceColors)) Canvas.staleMate = true
+    if (!whiteMoves.length && whiteKingUnderAttack.length && !Canvas.blackWon) {
+        sounds.checkmate_sound.play()
+        Canvas.blackWon = true
+    }
+    if (!blackMoves.length && blackKingUnderAttack.length && !Canvas.whiteWon) {
+        sounds.checkmate_sound.play()
+        Canvas.whiteWon = true
+    }
+    if (!whiteMoves.length && !whiteKingUnderAttack.length && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
+    if (!blackMoves.length && !blackKingUnderAttack.length && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
+    if (areOnlyKingsAlive(board, pieceColors) && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
 }
 
-export function restartGame(mousePosition: Positions, board: AlivePiece[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
-    let {x, y} = mousePosition
-    if (Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate) {
-        if (x >= canvasSize / 2 - squareSize / 2 && x <= canvasSize / 2 + squareSize && y
-            >= canvasSize / 2 && y <= canvasSize / 2 + 1.5 * squareSize) {
-            Canvas.whiteWon = false
-            Canvas.blackWon = false
-            Canvas.staleMate = false
-            Canvas.turns = 1
-            Canvas.killedPieces = []
-            King.black_king.hasMoved = false
-            King.white_king.hasMoved = false
-            Rook.leftBlackRook.hasMoved = false
-            Rook.rightBlackRook.hasMoved = false
-            Rook.leftWhiteRook.hasMoved = false
-            Rook.leftBlackRook.hasMoved = false
-            for (let i = 0; i < board.length; i++) {
-                board[i].x = initialBoard[i].x
-                board[i].y = initialBoard[i].y
-                board[i].isAlive = true
-                pieceColors[i].name = initialBoard[i].name
-                pieceImages[i].src = initialBoard[i].src
-            }
-        }
+export function promotePawnTo(src: string, name: string, pieces: PieceType[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
+    pieces[Pawn.promotedPawnIndex].src = src
+    pieces[Pawn.promotedPawnIndex].name = name
+    pieceImages[Pawn.promotedPawnIndex].src = src
+    pieceColors[Pawn.promotedPawnIndex].name = name
+    Pawn.promoteScreenOn = false
+    Pawn.promotedPawnIndex = -1
+}
+
+export function addScore(killedPieceIndex: number, pieceColors: ColorPiece[]){
+    let pieceScore = 0
+    switch (pieceColors[killedPieceIndex].name){
+        case "pawn":
+            pieceScore += 1
+            break
+        case "knight":
+            pieceScore += 3
+            break
+        case "bishop":
+            pieceScore += 3
+            break
+        case "rook":
+            pieceScore += 5
+            break
+        case "queen":
+            pieceScore += 9
+            break
     }
+    return pieceScore
 }

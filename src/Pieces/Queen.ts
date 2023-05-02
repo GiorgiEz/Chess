@@ -1,8 +1,8 @@
-import {ColorPiece, Moves, Positions} from "../Canvas/types";
+import {ColorPiece, Moves, Positions} from "../types";
 import {Rook} from "./Rook";
 import {Bishop} from "./Bishop";
 
-export class Queen{
+export class Queen {
     Indexes = [15, 12]
 
     validMoves(currX: number, currY: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[] {
