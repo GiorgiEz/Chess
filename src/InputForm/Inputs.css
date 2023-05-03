@@ -1,0 +1,46 @@
+.input-container {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+}
+
+input {
+    border: 2px solid black;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 20px;
+    background-color: #1A233B;
+    color: white;
+}
+
+input:focus {
+    border-color: #033672;
+    box-shadow: 0 0 0 5px rgba(0, 77, 162, 0.4);
+}
+
+button {
+    width: 250px;
+    height: 75px;
+    background-color: #1A233B;
+    font-size: 50px;
+    font-weight: bold;
+    color: white;
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+button:hover {
+    background: linear-gradient(to bottom right, #808080, rgba(7, 57, 128, 0.43));
+    transform: scale(1.1);
+    cursor: grabbing;
+}
+
+label {
+    color: white;
+    margin-bottom: 5px;
+}

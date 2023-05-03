@@ -1,13 +1,11 @@
-import {
-    getIndexAtPosition, isPieceOnSquare, getCurrPos,
-    canvasSize, squareSize
-} from "../Canvas/utils"
-import {ColorPiece, Moves, Positions} from "../Canvas/types";
+import {AlivePiece, ColorPiece, Moves, PieceType, Positions} from "../types";
+import {getIndexAtPosition, isPieceOnSquare,} from "../Canvas/utils"
+import {Canvas} from "../Canvas/Canvas";
+import {boardSize, canvasWidth, sounds, squareSize} from "../exports";
 
 export class Pawn {
-    leftMostWhitePawnIndex = 2
-    leftMostBlackPawnIndex = 1
     static promotedPawnIndex = -1
+    static lastMovedPawnIndex = -1
     static promoteScreenOn = false
     static promotedPawns: Set<number> = new Set()
 
@@ -34,12 +32,16 @@ export class Pawn {
                 getIndexAtPosition(x, y + squareSize, board)
         }
 
-        // Check for En Passant moves
-        // if (getIndexAtPosition(x-squareSize, y, board) === Canvas.lastMovedPawn){
-        //     validMoves.push(topLeft)
-        // }
+        //Check for En Passant moves
+        if (Pawn.lastMovedPawnIndex !== -1 && getIndexAtPosition(x-squareSize, y, board) === Pawn.lastMovedPawnIndex){
+            validMoves.push(topLeft)
+        }
 
-        if (x >= 0 && x <= canvasSize && y >= 0 && y <= canvasSize) {
+        if (Pawn.lastMovedPawnIndex !== -1 && getIndexAtPosition(x+squareSize, y, board) === Pawn.lastMovedPawnIndex){
+            validMoves.push(topRight)
+        }
+
+        if (x >= squareSize && x <= canvasWidth-squareSize && y >= 0 && y <= boardSize) {
             if (isPieceOnSquare(topLeft.x, topLeft.y, board) && pieceColors[topLeft.index] &&
                 pieceColors[topLeft.index].color !== pieceColors[index].color) {
                 validMoves.push(topLeft)
@@ -51,7 +53,7 @@ export class Pawn {
             if (!isPieceOnSquare(inFront.x, inFront.y, board)) validMoves.push(inFront)
 
             //Two squares in front
-            if (white && y >= canvasSize - 2 * squareSize){
+            if (white && y >= boardSize - 2 * squareSize){
                 if(!isPieceOnSquare(inFront.x, inFront.y, board) && !isPieceOnSquare(inFront.x, inFront.y - squareSize, board))
                 validMoves.push({
                     x: x,
@@ -71,24 +73,57 @@ export class Pawn {
         return validMoves
     }
 
-    getCurrentPositionsForAllPawns(board: Positions[], pieceColors: ColorPiece[]) {
-        let blackPositions: Positions[] = []
-        let whitePositions: Positions[] = []
-
-        let whiteIndex = this.leftMostWhitePawnIndex
-        let blackIndex = this.leftMostBlackPawnIndex
-        while (whiteIndex < board.length) {
-            let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
-            let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
-
-            if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === "pawn")
-                whitePositions.push({x: currXWhite, y: currYWhite})
-            if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === "pawn")
-                blackPositions.push({x: currXBlack, y: currYBlack})
-
-            whiteIndex += 4 // next white pawn
-            blackIndex += 4 // next white pawn
+    static setLastMovedPawnIndex(pieceColors: ColorPiece[], draggingIndex: number, board: Positions[], y: number){
+        if (pieceColors[draggingIndex].color === "white"){
+            if (board[draggingIndex].y - y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
+            else Pawn.lastMovedPawnIndex = -1
         }
-        return {whitePositions, blackPositions}
+        else {
+            if (y - board[draggingIndex].y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
+            else Pawn.lastMovedPawnIndex = -1
+        }
+    }
+
+    static enPassantMove(enPassantPos: Positions, board: AlivePiece[],
+                         pieceColors: ColorPiece[], draggingIndex: number, pieces: PieceType[]){
+        if (pieceColors[draggingIndex].name === "pawn"){
+            const white = pieceColors[draggingIndex].color === "white"
+            const topLeft = {
+                x: board[draggingIndex].x - squareSize,
+                y: white ? board[draggingIndex].y - squareSize : board[draggingIndex].y + squareSize,
+                index: white ? getIndexAtPosition(board[draggingIndex].x - squareSize, board[draggingIndex].y - squareSize, board) :
+                    getIndexAtPosition(board[draggingIndex].x - squareSize, board[draggingIndex].y + squareSize, board)
+            }
+            const topRight = {
+                x: board[draggingIndex].x + squareSize,
+                y: white ? board[draggingIndex].y - squareSize : board[draggingIndex].y + squareSize,
+                index: white ? getIndexAtPosition(board[draggingIndex].x + squareSize, board[draggingIndex].y - squareSize, board) :
+                    getIndexAtPosition(board[draggingIndex].x + squareSize, board[draggingIndex].y + squareSize, board)
+            }
+
+            const killedPieceIndex = white ? getIndexAtPosition(enPassantPos.x, enPassantPos.y+squareSize, board)
+                : getIndexAtPosition(enPassantPos.x, enPassantPos.y-squareSize, board)
+
+            if (white) {
+                if (!isPieceOnSquare(enPassantPos.x, enPassantPos.y, board) && (
+                    (enPassantPos.x === topLeft.x && enPassantPos.y === topLeft.y) ||
+                    (enPassantPos.x === topRight.x && enPassantPos.y === topLeft.y))){
+                    board[killedPieceIndex] = {x: -1000, y: -1000, isAlive: false}
+                    Canvas.blackKilledPieces.push(pieces[killedPieceIndex])
+                    Canvas.whiteScore += 1
+                    sounds.capture_sound.play()
+                }
+            }
+            else {
+                if (!isPieceOnSquare(enPassantPos.x, enPassantPos.y, board) && (
+                    (enPassantPos.x === topLeft.x && enPassantPos.y === topLeft.y) ||
+                    (enPassantPos.x === topRight.x && enPassantPos.y === topLeft.y))){
+                    board[killedPieceIndex] = {x: -1000, y: -1000, isAlive: false}
+                    Canvas.whiteKilledPieces.push(pieces[killedPieceIndex])
+                    Canvas.blackScore += 1
+                    sounds.capture_sound.play()
+                }
+            }
+        }
     }
 }
