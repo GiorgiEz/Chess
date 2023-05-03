@@ -22,6 +22,7 @@ import gameStart from "../src/Sounds/game_start.mp3"
 import checkMate from "../src/Sounds/checkmate.mp3"
 import staleMate from "../src/Sounds/stalemate.mp3"
 import pawnPromotion from "../src/Sounds/pawn_promotion_sound.mp3"
+import soundButton from "../src/Sounds/sound_button.mp3"
 
 export const images = {
     white_pawn: whitePawn,
@@ -49,11 +50,13 @@ export const sounds = {
     game_start_sound: new Audio(gameStart),
     checkmate_sound: new Audio(checkMate),
     stalemate_sound: new Audio(staleMate),
-    pawn_promotion_sound: new Audio(pawnPromotion)
+    pawn_promotion_sound: new Audio(pawnPromotion),
+    sound_button_sound: new Audio(soundButton),
 }
 
 export var canvasWidth = 750
-export var boardHeight = 600
+export var canvasHeight = 675
+export var boardSize = 600
 export var squareSize = 75;
 export var imageSize = 50;
 export var shiftImage = 12.5;

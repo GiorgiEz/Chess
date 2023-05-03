@@ -6,7 +6,6 @@ import {canvasWidth, shiftImage, sounds, squareSize} from "../exports";
 export class Rook{
     Indexes = [3, 31, 0, 28]
 
-    //initial positions for each rook
     static leftWhiteRook = {index: 3, hasMoved: false}
     static rightWhiteRook = {index: 31, hasMoved: false}
     static leftBlackRook = {index: 0, hasMoved: false}

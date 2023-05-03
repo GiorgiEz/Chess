@@ -59,7 +59,7 @@ export class King{
             return [
                 {x: x, y, index: getIndexAtPosition(x, y, board)},
                 {x: leftTwoSquares.x, y: y, index: getIndexAtPosition(leftTwoSquares.x, y, board)},
-                {x: canvasWidth/2 - x + 2*shiftImage, y, index: getIndexAtPosition(canvasWidth/2 - x + 2*shiftImage, y, board)}
+                {x: canvasWidth/2-squareSize+shiftImage, y, index: getIndexAtPosition(canvasWidth/2-squareSize+shiftImage, y, board)}
             ]
         }
 
@@ -91,26 +91,36 @@ export class King{
         const kingSideMoves = getKingSideMoves(canvasWidth/2+squareSize+shiftImage, board)
 
         if (index === King.white_king.index && !King.white_king.hasMoved) {
+            const whiteKingUnderAttack = allBlackPieceMoves.filter(move => move.index === King.white_king.index)
             if (!Rook.leftWhiteRook.hasMoved) {
-                if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(queenSideMoves, allBlackPieceMoves)) {
+                const rookUnderAttack = allBlackPieceMoves.filter(move => move.index === Rook.leftWhiteRook.index)
+                if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) &&
+                    !includes(queenSideMoves, allBlackPieceMoves) && !whiteKingUnderAttack.length && !rookUnderAttack.length) {
                     validMoves.push({x: leftTwoSquares.x, y, index: getIndexAtPosition(leftTwoSquares.x, y, board)})
                 }
             }
             if (!Rook.rightWhiteRook.hasMoved) {
-                if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(kingSideMoves, allBlackPieceMoves)) {
+                const rookUnderAttack = allBlackPieceMoves.filter(move => move.index === Rook.rightWhiteRook.index)
+                if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) &&
+                    !includes(kingSideMoves, allBlackPieceMoves) && !whiteKingUnderAttack.length && !rookUnderAttack.length) {
                     validMoves.push({x: rightTwoSquares.x, y: y, index: getIndexAtPosition(rightTwoSquares.x, y, board)})
                 }
             }
         }
 
         if (index === King.black_king.index && !King.black_king.hasMoved) {
+            const blackKingUnderAttack = allWhitePieceMoves.filter(move => move.index === King.black_king.index)
             if (!Rook.leftBlackRook.hasMoved) {
-                if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(queenSideMoves, allWhitePieceMoves)) {
+                const rookUnderAttack = allWhitePieceMoves.filter(move => move.index === Rook.leftBlackRook.index)
+                if (queenSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) &&
+                    !includes(queenSideMoves, allWhitePieceMoves) && !blackKingUnderAttack.length && !rookUnderAttack.length) {
                     validMoves.push({x: leftTwoSquares.x, y, index: getIndexAtPosition(leftTwoSquares.x, y, board)})
                 }
             }
             if (!Rook.rightBlackRook.hasMoved) {
-                if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) && !includes(kingSideMoves, allWhitePieceMoves)) {
+                const rookUnderAttack = allWhitePieceMoves.filter(move => move.index === Rook.rightBlackRook.index)
+                if (kingSideMoves.every(pos => !isPieceOnSquare(pos.x, pos.y, board)) &&
+                    !includes(kingSideMoves, allWhitePieceMoves) && !blackKingUnderAttack.length && !rookUnderAttack.length) {
                     validMoves.push({x: rightTwoSquares.x, y: y, index: getIndexAtPosition(rightTwoSquares.x, y, board)})
                 }
             }

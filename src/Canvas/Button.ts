@@ -5,7 +5,7 @@ import {Canvas} from "./Canvas";
 import {Pawn} from "../Pieces/Pawn";
 import {King} from "../Pieces/King";
 import {Rook} from "../Pieces/Rook";
-import {boardHeight, canvasWidth, images, shiftImage, sounds, squareSize} from "../exports";
+import {boardSize, canvasWidth, images, shiftImage, sounds, squareSize} from "../exports";
 
 export class Button {
     x: number
@@ -17,8 +17,9 @@ export class Button {
     }
 
     toggleSoundButton() {
-        if (this.x >= squareSize && this.x <= squareSize+squareSize/2 && this.y >= 0 && this.y <= squareSize/2
+        if (this.x > squareSize && this.x < 2*squareSize && this.y > 0 && this.y < squareSize
             && (Canvas.menuScreen || Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate)){
+            sounds.sound_button_sound.play()
             Canvas.soundOn = !Canvas.soundOn;
             sounds.move_sound.volume = Canvas.soundOn ? 1 : 0;
             sounds.capture_sound.volume = Canvas.soundOn ? 1 : 0;
@@ -26,40 +27,44 @@ export class Button {
             sounds.checkmate_sound.volume = Canvas.soundOn ? 1 : 0;
             sounds.stalemate_sound.volume = Canvas.soundOn ? 1 : 0;
             sounds.game_start_sound.volume = Canvas.soundOn ? 1 : 0;
+            sounds.pawn_promotion_sound.volume = Canvas.soundOn ? 1: 0;
         }
     }
 
     promotePawnButtons(pieceColors: ColorPiece[], pieces: PieceType[], pieceImages: HTMLImageElement[]) {
         if (pieceColors[Pawn.promotedPawnIndex]?.name === "pawn") {
             if (this.x >= squareSize && this.x <= 3*squareSize &&
-                this.y >= 3*squareSize && this.y <= boardHeight-3*squareSize) {
+                this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
                 if (pieceColors[Pawn.promotedPawnIndex].color === "white")
                     promotePawnTo(images.white_queen, "queen", pieces, pieceColors, pieceImages)
                 else promotePawnTo(images.black_queen, "queen", pieces, pieceColors, pieceImages)
+                sounds.pawn_promotion_sound.play()
             } if (this.x >= 3*squareSize && this.x <= canvasWidth/2 &&
-                this.y >= 3*squareSize && this.y <= boardHeight-3*squareSize) {
+                this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
                 if (pieceColors[Pawn.promotedPawnIndex].color === "white")
                     promotePawnTo(images.white_rook, "rook", pieces, pieceColors, pieceImages)
                 else promotePawnTo(images.black_rook, "rook", pieces, pieceColors, pieceImages)
+                sounds.pawn_promotion_sound.play()
             } if (this.x >= canvasWidth/2 && this.x <= canvasWidth/2+squareSize*2 &&
-                this.y >= 3*squareSize && this.y <= boardHeight-3*squareSize) {
+                this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
                 if (pieceColors[Pawn.promotedPawnIndex].color === "white")
                     promotePawnTo(images.white_bishop, "bishop", pieces, pieceColors, pieceImages)
                 else promotePawnTo(images.black_bishop, "bishop", pieces, pieceColors, pieceImages)
+                sounds.pawn_promotion_sound.play()
             } if (this.x >= canvasWidth/2+squareSize*2 && this.x <= canvasWidth-squareSize &&
-                this.y >= 3*squareSize && this.y <= boardHeight-3*squareSize) {
+                this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
                 if (pieceColors[Pawn.promotedPawnIndex].color === "white")
                     promotePawnTo(images.white_knight, "knight", pieces, pieceColors, pieceImages)
                 else promotePawnTo(images.black_knight, "knight", pieces, pieceColors, pieceImages)
+                sounds.pawn_promotion_sound.play()
             }
-            sounds.pawn_promotion_sound.play()
         }
     }
 
     restartGameButton(board: AlivePiece[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
         if (Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate) {
             if (this.x >= 4*squareSize + 2*shiftImage && this.x <= 6*squareSize-2*shiftImage
-                && this.y >= boardHeight/2 && this.y <= boardHeight/2+1.5*squareSize) {
+                && this.y >= boardSize/2 && this.y <= boardSize/2+1.5*squareSize) {
                 sounds.game_start_sound.play()
                 Canvas.whiteWon = false
                 Canvas.blackWon = false

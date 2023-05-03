@@ -37,10 +37,10 @@ button {
 button:hover {
     background: linear-gradient(to bottom right, #808080, rgba(7, 57, 128, 0.43));
     transform: scale(1.1);
+    cursor: grabbing;
 }
 
-label{
+label {
     color: white;
     margin-bottom: 5px;
 }
-

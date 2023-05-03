@@ -2,9 +2,9 @@ import {AllMovesFunction, ColorPiece, Moves, Positions, ValidMoves, ValidMovesFu
 import {King} from "./King";
 import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "./AllMoves";
 import {getCurrPos, getIndexAtPosition, isPieceOnSquare} from "../Canvas/utils";
-import {boardHeight, canvasWidth, squareSize} from "../exports";
+import {boardSize, canvasWidth, squareSize} from "../exports";
 
-// Exclude pieces from making illegal moves if king is or will be in danger
+// Don't let a piece make illegal move if the king is or will be in danger
 export function movementHandler(
     king: Positions, draggingIndex: number, board: Positions[], pieceColors: ColorPiece[], redSquares: Positions[],
     allMovesFunction: AllMovesFunction, validMovesFunction: ValidMovesFunction
@@ -47,12 +47,12 @@ export function getValidMovesForRookOrBishop (
     dx: number, dy: number, currX: number, currY: number, dragIndex: number, board: Positions[], color_name_arr: ColorPiece[]
 ) {
     let validMoves: Moves[] = [];
-    for (let square = squareSize; square < boardHeight; square += squareSize) {
+    for (let square = squareSize; square < boardSize; square += squareSize) {
         const x = currX + square * dx;
         const y = currY + square * dy;
         const index = getIndexAtPosition(x, y, board);
 
-        if (x >= squareSize && x <= canvasWidth-squareSize && y >= 0 && y <= boardHeight) {
+        if (x >= squareSize && x <= canvasWidth-squareSize && y >= 0 && y <= boardSize) {
             const sameColors = color_name_arr[index]?.color === color_name_arr[dragIndex]?.color;
             if (isPieceOnSquare(x, y, board) && sameColors) break;
             else if (isPieceOnSquare(x, y, board) && !sameColors) {validMoves.push({x, y, index});break;}
@@ -67,7 +67,7 @@ export function getValidMovesForKnightOrKing(moves: Moves[], board: Positions[],
     let validMoves: Moves[] = []
     for (let i = 0; i < moves.length; i++){
         const move = {x: moves[i].x, y: moves[i].y, index: moves[i].index}
-        if (move.x >= squareSize && move.x <= canvasWidth-squareSize && move.y >= 0 && move.y <= boardHeight) {
+        if (move.x >= squareSize && move.x <= canvasWidth-squareSize && move.y >= 0 && move.y <= boardSize) {
             const sameColors = color_name_arr[move.index]?.color === color_name_arr[dragIndex].color
             if (!isPieceOnSquare(move.x, move.y, board)) validMoves.push(move)
             else if (isPieceOnSquare(move.x, move.y, board) && !sameColors) validMoves.push(move)

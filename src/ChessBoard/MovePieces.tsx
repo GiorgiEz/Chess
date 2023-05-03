@@ -3,14 +3,8 @@ import "./ChessBoard.css"
 import {Moves, PieceType, Positions} from "../types";
 import {Canvas} from "../Canvas/Canvas";
 
-import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "../Pieces/AllMoves";
-import {
-    checkmateOrStalemate,
-    getIndexAtPosition,
-    isPieceOnSquare,
-    adjustPiecePositions,
-    addScore,
-} from "../Canvas/utils";
+import {checkmateOrStalemate, getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "../Pieces/AllMoves";
+import {getIndexAtPosition, isPieceOnSquare, adjustPiecePositions, addScore,} from "../Canvas/utils";
 
 import {Pawn} from "../Pieces/Pawn";
 import {Rook} from "../Pieces/Rook";
@@ -21,7 +15,7 @@ import {King} from "../Pieces/King";
 import {Button} from "../Canvas/Button";
 import {pieceMovementHandler} from "../Pieces/Movements";
 import {NamesInput} from "../InputForm/NamesInput";
-import {boardHeight, canvasWidth, imageSize, sounds, squareSize} from "../exports";
+import {boardSize, canvasHeight, canvasWidth, imageSize, sounds, squareSize} from "../exports";
 
 interface Props {
     pieces: PieceType[];
@@ -31,7 +25,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
     const canvasRef = React.createRef<HTMLCanvasElement>();
     let draggingIndex: number = -1
     let mousePosition = {x: 0, y: 0}
-    let greenSquares: Positions[] = []
+    let highlightedSquares: Positions[] = []
     let redSquares: Positions[] = []
 
     const pieceColors = pieces.map(({color, name}) => ({name, color}))
@@ -105,7 +99,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         checkmateOrStalemate(board, pieceColors)
 
         redSquares = []
-        greenSquares = []
+        highlightedSquares = []
         draggingIndex = -1;
     }
 
@@ -115,7 +109,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         canvas.style.cursor = "grabbing";
         //Can't move pieces outside of canvas
         const borderX = canvasWidth - squareSize - imageSize
-        const borderY = boardHeight - imageSize
+        const borderY = boardSize - imageSize
         if (x >= borderX) x = borderX
         if (x <= squareSize) x = squareSize
         if (y <= 0) y = 0
@@ -198,7 +192,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
             if (pieceColors[draggingIndex].name === "pawn" && !checkIfValid(handlePawnMovement())) return
             else if (pieceColors[draggingIndex].name === "pawn")
                 Pawn.setLastMovedPawnIndex(pieceColors, draggingIndex, board, y)
-            else Canvas.lastMovedPawnIndex = -1
+            else Pawn.lastMovedPawnIndex = -1
 
             if (pieceColors[draggingIndex].name === "rook" && !checkIfValid(handleRookMovement())) return;
             else if (pieceColors[draggingIndex].name === "rook") Rook.hasMoved(pieceColors, draggingIndex)
@@ -222,12 +216,12 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
         if (Canvas.turns % 2 === 1 && pieceColors[draggingIndex].color === "black") return;
         if (Canvas.turns % 2 === 0 && pieceColors[draggingIndex].color === "white") return;
 
-        if (pieceColors[draggingIndex].name === "pawn") greenSquares = handlePawnMovement()
-        if (pieceColors[draggingIndex].name === "rook") greenSquares = handleRookMovement()
-        if (pieceColors[draggingIndex].name === "knight") greenSquares = handleKnightMovement()
-        if (pieceColors[draggingIndex].name === "bishop") greenSquares = handleBishopMovement()
-        if (pieceColors[draggingIndex].name === "king") greenSquares = handleKingMovement()
-        if (pieceColors[draggingIndex].name === "queen") greenSquares = handleQueenMovement()
+        if (pieceColors[draggingIndex].name === "pawn") highlightedSquares = handlePawnMovement()
+        if (pieceColors[draggingIndex].name === "rook") highlightedSquares = handleRookMovement()
+        if (pieceColors[draggingIndex].name === "knight") highlightedSquares = handleKnightMovement()
+        if (pieceColors[draggingIndex].name === "bishop") highlightedSquares = handleBishopMovement()
+        if (pieceColors[draggingIndex].name === "king") highlightedSquares = handleKingMovement()
+        if (pieceColors[draggingIndex].name === "queen") highlightedSquares = handleQueenMovement()
     }
 
     const render = (ctx: CanvasRenderingContext2D) => {
@@ -235,11 +229,11 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
 
         canvas.clearCanvas()
         canvas.drawBoardBackground()
-        canvas.drawGreenCircles(greenSquares)
+        canvas.drawGreenCircles(highlightedSquares)
         canvas.drawRedBackground(redSquares)
         canvas.drawPieces(board, pieceImages, draggingIndex, mousePosition)
         canvas.drawCoordinates()
-        canvas.drawGameOverScreen(mousePosition)
+        canvas.drawGameOverScreen(mousePosition, whiteKingName, blackKingName)
         canvas.promotionScreen(board, pieceColors, mousePosition)
         canvas.drawKilledPieces()
         canvas.drawMenuScreen()
@@ -255,7 +249,7 @@ export const MovePieces: React.FC<Props> = ({pieces}) => {
                 className={"chessboard"}
                 ref={canvasRef}
                 width={canvasWidth}
-                height={boardHeight+squareSize}
+                height={canvasHeight}
                 onMouseDown={onMouseDown}
             />
             <NamesInput

@@ -1,5 +1,5 @@
-import {ColorPiece, Moves, Positions, ValidMovesFunction} from "../types";
-import {getCurrPos, getIndexAtPosition,} from "../Canvas/utils";
+import {AlivePiece, ColorPiece, Moves, Positions, ValidMovesFunction} from "../types";
+import {areOnlyKingsAlive, getCurrPos, getIndexAtPosition,} from "../Canvas/utils";
 import {Pawn} from "./Pawn";
 import {Bishop} from "./Bishop";
 import {King} from "./King";
@@ -7,6 +7,8 @@ import {Rook} from "./Rook";
 import {Knight} from "./Knight";
 import {Queen} from "./Queen";
 import {movementHandler} from "./Movements";
+import {Canvas} from "../Canvas/Canvas";
+import {sounds} from "../exports";
 
 // function to get all the positions where pieces can move
 export function simulateMoves(indexArray: number[], board: Positions[],
@@ -183,4 +185,33 @@ export function allPossibleMoves(board: Positions[], pieceColors: ColorPiece[], 
         }
     }
     return {whiteValidMoves, blackValidMoves}
+}
+
+export function checkmateOrStalemate(board: AlivePiece[], pieceColors: ColorPiece[]){
+    const whiteMoves = allPossibleMoves(board, pieceColors, []).whiteValidMoves
+    const blackMoves = allPossibleMoves(board, pieceColors, []).blackValidMoves
+
+    const whiteKingUnderAttack = blackMoves.filter(move => move.index === King.white_king.index)
+    const blackKingUnderAttack = whiteMoves.filter(move => move.index === King.black_king.index)
+
+    if (!whiteMoves.length && whiteKingUnderAttack.length && Canvas.turns % 2 === 1 && !Canvas.blackWon) {
+        sounds.checkmate_sound.play()
+        Canvas.blackWon = true
+    }
+    if (!blackMoves.length && blackKingUnderAttack.length && Canvas.turns % 2 === 0 && !Canvas.whiteWon) {
+        sounds.checkmate_sound.play()
+        Canvas.whiteWon = true
+    }
+    if (!whiteMoves.length && !whiteKingUnderAttack.length && Canvas.turns % 2 === 1 && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
+    if (!blackMoves.length && !blackKingUnderAttack.length && Canvas.turns % 2 === 0 && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
+    if (areOnlyKingsAlive(board, pieceColors) && !Canvas.staleMate) {
+        sounds.stalemate_sound.play()
+        Canvas.staleMate = true
+    }
 }

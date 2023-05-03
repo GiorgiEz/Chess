@@ -1,10 +1,11 @@
 import {AlivePiece, ColorPiece, Moves, PieceType, Positions} from "../types";
 import {getIndexAtPosition, isPieceOnSquare,} from "../Canvas/utils"
 import {Canvas} from "../Canvas/Canvas";
-import {boardHeight, canvasWidth, sounds, squareSize} from "../exports";
+import {boardSize, canvasWidth, sounds, squareSize} from "../exports";
 
 export class Pawn {
     static promotedPawnIndex = -1
+    static lastMovedPawnIndex = -1
     static promoteScreenOn = false
     static promotedPawns: Set<number> = new Set()
 
@@ -32,15 +33,15 @@ export class Pawn {
         }
 
         //Check for En Passant moves
-        if (Canvas.lastMovedPawnIndex !== -1 && getIndexAtPosition(x-squareSize, y, board) === Canvas.lastMovedPawnIndex){
+        if (Pawn.lastMovedPawnIndex !== -1 && getIndexAtPosition(x-squareSize, y, board) === Pawn.lastMovedPawnIndex){
             validMoves.push(topLeft)
         }
 
-        if (Canvas.lastMovedPawnIndex !== -1 && getIndexAtPosition(x+squareSize, y, board) === Canvas.lastMovedPawnIndex){
+        if (Pawn.lastMovedPawnIndex !== -1 && getIndexAtPosition(x+squareSize, y, board) === Pawn.lastMovedPawnIndex){
             validMoves.push(topRight)
         }
 
-        if (x >= squareSize && x <= canvasWidth-squareSize && y >= 0 && y <= boardHeight) {
+        if (x >= squareSize && x <= canvasWidth-squareSize && y >= 0 && y <= boardSize) {
             if (isPieceOnSquare(topLeft.x, topLeft.y, board) && pieceColors[topLeft.index] &&
                 pieceColors[topLeft.index].color !== pieceColors[index].color) {
                 validMoves.push(topLeft)
@@ -52,7 +53,7 @@ export class Pawn {
             if (!isPieceOnSquare(inFront.x, inFront.y, board)) validMoves.push(inFront)
 
             //Two squares in front
-            if (white && y >= boardHeight - 2 * squareSize){
+            if (white && y >= boardSize - 2 * squareSize){
                 if(!isPieceOnSquare(inFront.x, inFront.y, board) && !isPieceOnSquare(inFront.x, inFront.y - squareSize, board))
                 validMoves.push({
                     x: x,
@@ -74,12 +75,12 @@ export class Pawn {
 
     static setLastMovedPawnIndex(pieceColors: ColorPiece[], draggingIndex: number, board: Positions[], y: number){
         if (pieceColors[draggingIndex].color === "white"){
-            if (board[draggingIndex].y - y === 2*squareSize) Canvas.lastMovedPawnIndex = draggingIndex
-            else Canvas.lastMovedPawnIndex = -1
+            if (board[draggingIndex].y - y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
+            else Pawn.lastMovedPawnIndex = -1
         }
         else {
-            if (y - board[draggingIndex].y === 2*squareSize) Canvas.lastMovedPawnIndex = draggingIndex
-            else Canvas.lastMovedPawnIndex = -1
+            if (y - board[draggingIndex].y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
+            else Pawn.lastMovedPawnIndex = -1
         }
     }
 

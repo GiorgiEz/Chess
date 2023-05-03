@@ -1,10 +1,6 @@
 import {ColorPiece, Positions, AlivePiece, PieceType} from "../types";
-
-import {allPossibleMoves} from "../Pieces/AllMoves";
-import {Canvas} from "./Canvas";
-import {King} from "../Pieces/King";
 import {Pawn} from "../Pieces/Pawn";
-import {canvasWidth, imageSize, shiftImage, sounds, squareSize} from "../exports";
+import {canvasWidth, imageSize, shiftImage, squareSize} from "../exports";
 
 export function getCurrPos(draggingIndex: number, positions: Positions[]) {
     let currX = 0
@@ -49,43 +45,15 @@ export function includes(positionsArray: Positions[], allPositionsArray: Positio
     return false
 }
 
-function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
+export function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
     for (let i = 0; i < pieceColors.length; i++){
         if (pieceColors[i].name !== "king" && positions[i].isAlive) return false
     }
     return true
 }
 
-export function checkmateOrStalemate(board: AlivePiece[], pieceColors: ColorPiece[]){
-    const whiteMoves = allPossibleMoves(board, pieceColors, []).whiteValidMoves
-    const blackMoves = allPossibleMoves(board, pieceColors, []).blackValidMoves
-
-    const whiteKingUnderAttack = blackMoves.filter(move => move.index === King.white_king.index)
-    const blackKingUnderAttack = whiteMoves.filter(move => move.index === King.black_king.index)
-
-    if (!whiteMoves.length && whiteKingUnderAttack.length && !Canvas.blackWon) {
-        sounds.checkmate_sound.play()
-        Canvas.blackWon = true
-    }
-    if (!blackMoves.length && blackKingUnderAttack.length && !Canvas.whiteWon) {
-        sounds.checkmate_sound.play()
-        Canvas.whiteWon = true
-    }
-    if (!whiteMoves.length && !whiteKingUnderAttack.length && !Canvas.staleMate) {
-        sounds.stalemate_sound.play()
-        Canvas.staleMate = true
-    }
-    if (!blackMoves.length && !blackKingUnderAttack.length && !Canvas.staleMate) {
-        sounds.stalemate_sound.play()
-        Canvas.staleMate = true
-    }
-    if (areOnlyKingsAlive(board, pieceColors) && !Canvas.staleMate) {
-        sounds.stalemate_sound.play()
-        Canvas.staleMate = true
-    }
-}
-
-export function promotePawnTo(src: string, name: string, pieces: PieceType[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
+export function promotePawnTo(src: string, name: string, pieces: PieceType[],
+                              pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
     pieces[Pawn.promotedPawnIndex].src = src
     pieces[Pawn.promotedPawnIndex].name = name
     pieceImages[Pawn.promotedPawnIndex].src = src
@@ -95,23 +63,23 @@ export function promotePawnTo(src: string, name: string, pieces: PieceType[], pi
 }
 
 export function addScore(killedPieceIndex: number, pieceColors: ColorPiece[]){
-    let pieceScore = 0
+    let playerScore = 0
     switch (pieceColors[killedPieceIndex].name){
         case "pawn":
-            pieceScore += 1
+            playerScore += 1
             break
         case "knight":
-            pieceScore += 3
+            playerScore += 3
             break
         case "bishop":
-            pieceScore += 3
+            playerScore += 3
             break
         case "rook":
-            pieceScore += 5
+            playerScore += 5
             break
         case "queen":
-            pieceScore += 9
+            playerScore += 9
             break
     }
-    return pieceScore
+    return playerScore
 }

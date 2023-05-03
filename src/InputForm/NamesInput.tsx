@@ -27,20 +27,22 @@ export const NamesInput: React.FC<Props> = ({handleWhiteKingInput, handleBlackKi
                         <input
                             type={"text"}
                             id={"white-king-input"}
-                            onChange={handleWhiteKingInput}
                             placeholder={"Enter White King's name..."}
+                            onChange={handleWhiteKingInput}
                             maxLength={15}
-                            //required
+                            minLength={5}
+                            required
                         />
 
                         <label htmlFor="black-king-input">Black king:</label>
                         <input
                             type={"text"}
                             id={"black-king-input"}
-                            onChange={handleBlackKingInput}
                             placeholder={"Enter Black King's name..."}
+                            onChange={handleBlackKingInput}
                             maxLength={15}
-                            //required
+                            minLength={5}
+                            required
                         />
                         <button type={"submit"}>Play</button>
                     </div>
