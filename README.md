@@ -1,2 +1,2 @@
 # Classic Chess game
-Made with Typescript, react and canvas
+Made with Typescript, React, Canvas and CSS
