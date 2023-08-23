@@ -1,7 +1,7 @@
 export type PieceType = {
     src: string,
     x: number,
-    y:number,
+    y: number,
     color: "white" | "black",
     name: string,
     isAlive: boolean,

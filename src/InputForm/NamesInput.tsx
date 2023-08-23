@@ -30,7 +30,7 @@ export const NamesInput: React.FC<Props> = ({handleWhiteKingInput, handleBlackKi
                             placeholder={"Enter White King's name..."}
                             onChange={handleWhiteKingInput}
                             maxLength={15}
-                            minLength={5}
+                            minLength={3}
                             required
                         />
 
@@ -41,7 +41,7 @@ export const NamesInput: React.FC<Props> = ({handleWhiteKingInput, handleBlackKi
                             placeholder={"Enter Black King's name..."}
                             onChange={handleBlackKingInput}
                             maxLength={15}
-                            minLength={5}
+                            minLength={3}
                             required
                         />
                         <button type={"submit"}>Play</button>
