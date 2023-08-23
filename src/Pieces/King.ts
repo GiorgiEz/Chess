@@ -1,21 +1,20 @@
-import {AllMovesFunction, ColorPiece, Moves, Positions} from "../types";
+import {AlivePiece, AllMovesFunction, ColorPiece, Moves, Positions} from "../types";
 import {Rook} from "./Rook";
 import {
     getPossibleMovesForBishops, getPossibleMovesForKnights, getPossibleMovesForPawns,
     getPossibleMovesForQueens, getPossibleMovesForRooks
 } from "./AllMoves";
 import {
-    getCurrPos, getIndexAtPosition, includes, isPieceOnSquare,
+    getCurrPos,
+    getIndexAtPosition, includes, isPieceOnSquare,
 } from "../Canvas/utils";
 import {getValidMovesForKnightOrKing} from "./Movements";
 import {canvasWidth, shiftImage, squareSize} from "../exports";
 
 export class King{
-    //King initial positions
     static white_king = {index: 19, hasMoved: false}
     static black_king = {index: 16, hasMoved: false}
 
-    //positions where king needs to move for castling
     validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[]{
         const left = {
             x: x - squareSize, y: y,
@@ -63,7 +62,7 @@ export class King{
             ]
         }
 
-        //all 2 positions between king and the rook on the king side
+        //both positions between king and the rook on the king side
         function getKingSideMoves(x: number, board: Positions[]){
             return [
                 {x: x, y, index: getIndexAtPosition(x, y, board)},
@@ -129,7 +128,7 @@ export class King{
     }
 
     //king cant move to the position where enemy pieces can move
-    kingMovementHandler(kingIndex: number, redSquares: Positions[], board: Positions[],
+    kingMovementHandler(kingIndex: number, redSquares: Positions[], board: AlivePiece[],
                         pieceColors: ColorPiece[], allMovesFunction: AllMovesFunction
     ) {
         const {currX, currY} = getCurrPos(kingIndex, board)
@@ -139,8 +138,8 @@ export class King{
             const simulatedBoard = board.map(pos => ({...pos}));
 
             const potentiallyKilledPiece = getIndexAtPosition(move.x, move.y, simulatedBoard)
-            simulatedBoard[kingIndex] = {x: move.x, y: move.y}
-            simulatedBoard[potentiallyKilledPiece] = {x: -1000, y: -1000}
+            simulatedBoard[kingIndex] = {x: move.x, y: move.y, isAlive: true}
+            simulatedBoard[potentiallyKilledPiece] = {x: -1000, y: -1000, isAlive: true}
 
             let allBlackMoves = allMovesFunction(simulatedBoard, pieceColors)
             if (!isPieceOnSquare(move.x, move.y, allBlackMoves)) {

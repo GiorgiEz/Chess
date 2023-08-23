@@ -9,6 +9,7 @@ import {Queen} from "./Queen";
 import {movementHandler} from "./Movements";
 import {Canvas} from "../Canvas/Canvas";
 import {sounds} from "../exports";
+import {Pieces} from "../ChessBoard/MovePieces";
 
 // function to get all the positions where pieces can move
 export function simulateMoves(indexArray: number[], board: Positions[],
@@ -66,34 +67,13 @@ export function getPossibleMovesForPawns(board: Positions[], pieceColors: ColorP
     let whiteIndex = 2
     let blackIndex = 1
     while (whiteIndex < board.length){
-        if (pieceColors[whiteIndex].name === "pawn") indexes.push(whiteIndex)
-        if (pieceColors[blackIndex].name === "pawn") indexes.push(blackIndex)
+        if (pieceColors[whiteIndex].name === Pieces.PAWN) indexes.push(whiteIndex)
+        if (pieceColors[blackIndex].name === Pieces.PAWN) indexes.push(blackIndex)
         whiteIndex += 4 // next white pawn
         blackIndex += 4 // next black pawn
     }
     const pawn = new Pawn()
     return simulateMoves(indexes, board, pieceColors, pawn.validMoves)
-}
-
-export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: ColorPiece[]) {
-    let blackPositions: Positions[] = []
-    let whitePositions: Positions[] = []
-
-    let whiteIndex = 2
-    let blackIndex = 1
-    while (whiteIndex < board.length) {
-        let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
-        let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
-
-        if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === "pawn")
-            whitePositions.push({x: currXWhite, y: currYWhite})
-        if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === "pawn")
-            blackPositions.push({x: currXBlack, y: currYBlack})
-
-        whiteIndex += 4 // next white pawn
-        blackIndex += 4 // next black pawn
-    }
-    return {whitePositions, blackPositions}
 }
 
 export function getPossibleMovesForAllBlackPieces(board: Positions[], pieceColors: ColorPiece[]){
@@ -118,8 +98,30 @@ export function getPossibleMovesForAllWhitePieces(board: Positions[], pieceColor
     ]
 }
 
+export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: ColorPiece[]) {
+    let blackPositions: Positions[] = []
+    let whitePositions: Positions[] = []
+
+    let whiteIndex = 2
+    let blackIndex = 1
+
+    while (whiteIndex < board.length) {
+        let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
+        let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
+
+        if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === Pieces.PAWN)
+            whitePositions.push({x: currXWhite, y: currYWhite})
+        if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === Pieces.PAWN)
+            blackPositions.push({x: currXBlack, y: currYBlack})
+
+        whiteIndex += 4 // next white pawn
+        blackIndex += 4 // next black pawn
+    }
+    return {whitePositions, blackPositions}
+}
+
 //Find all moves to determine if it's a checkmate or not
-export function allPossibleMoves(board: Positions[], pieceColors: ColorPiece[], redSquares: Positions[]){
+export function allPossibleMoves(board: AlivePiece[], pieceColors: ColorPiece[], redSquares: Positions[]){
     const whiteValidMoves = []
     const blackValidMoves = []
     const king = new King()
@@ -130,54 +132,54 @@ export function allPossibleMoves(board: Positions[], pieceColors: ColorPiece[], 
     for (let i = 0; i < pieceColors.length; i++){
         if (pieceColors[i].color === "white"){
             switch (pieceColors[i].name){
-                case "queen":
+                case Pieces.QUEEN:
                     whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Queen().validMoves))
                     break
-                case "king":
+                case Pieces.KING:
                     whiteValidMoves.push(...king.kingMovementHandler(King.white_king.index, redSquares,
                         board, pieceColors, getPossibleMovesForAllBlackPieces))
                     break
-                case "pawn":
+                case Pieces.PAWN:
                     whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Pawn().validMoves))
                     break
-                case "rook":
+                case Pieces.ROOK:
                     whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Rook().validMoves))
                     break
-                case "bishop":
+                case Pieces.BISHOP:
                     whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Bishop().validMoves))
                     break
-                case "knight":
+                case Pieces.KNIGHT:
                     whiteValidMoves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllBlackPieces, new Knight().validMoves))
                     break
             }
         } else {
             switch (pieceColors[i].name){
-                case "queen":
+                case Pieces.QUEEN:
                     blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Queen().validMoves))
                     break
-                case "king":
+                case Pieces.KING:
                     blackValidMoves.push(...king.kingMovementHandler(King.black_king.index, redSquares,
                         board, pieceColors, getPossibleMovesForAllWhitePieces))
                     break
-                case "pawn":
+                case Pieces.PAWN:
                     blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Pawn().validMoves))
                     break
-                case "rook":
+                case Pieces.ROOK:
                     blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Rook().validMoves))
                     break
-                case "bishop":
+                case Pieces.BISHOP:
                     blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Bishop().validMoves))
                     break
-                case "knight":
+                case Pieces.KNIGHT:
                     blackValidMoves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
                         getPossibleMovesForAllWhitePieces, new Knight().validMoves))
                     break

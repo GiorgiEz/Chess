@@ -1,9 +1,11 @@
 import {PieceType} from "../types";
 import {MovePieces} from "./MovePieces"
-import {images} from "../exports";
+import {images, shiftImage, squareSize} from "../exports";
+import React, {ChangeEvent, useCallback, useState} from "react";
+import {NamesInput} from "../InputForm/NamesInput";
 
 const pieces: PieceType[] = []
-export const initialBoard: PieceType[] = []
+export const initialPieces: PieceType[] = []
 
 const blackPieces = [
     images.black_rook, images.black_knight, images.black_bishop, images.black_queen,
@@ -13,20 +15,40 @@ const whitePieces = [
     images.white_rook, images.white_knight, images.white_bishop, images.white_queen,
     images.white_king, images.white_bishop, images.white_knight, images.white_rook
 ]
+
 const namesArray = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
 
-for (let pos = 87.5, i = 0; i < blackPieces.length; pos += 75, i++) {
+for (let pos = squareSize + shiftImage, i = 0; i < blackPieces.length; pos += squareSize, i++) {
     pieces.push({src: blackPieces[i], x: pos, y: 12.5, color: "black", name: namesArray[i], isAlive: true})
     pieces.push({src: images.black_pawn, x: pos, y: 87.5, color: "black", name:"pawn", isAlive: true})
     pieces.push({src: images.white_pawn, x: pos, y: 462.5, color: "white", name:"pawn", isAlive: true})
     pieces.push({src: whitePieces[i], x: pos, y: 537.5, color: "white", name: namesArray[i], isAlive: true})
 
-    initialBoard.push({src: blackPieces[i], x: pos, y: 12.5, color: "black", name: namesArray[i], isAlive: true})
-    initialBoard.push({src: images.black_pawn, x: pos, y: 87.5, color: "black", name:"pawn", isAlive: true})
-    initialBoard.push({src: images.white_pawn, x: pos, y: 462.5, color: "white", name:"pawn", isAlive: true})
-    initialBoard.push({src: whitePieces[i], x: pos, y: 537.5, color: "white", name: namesArray[i], isAlive: true})
+    initialPieces.push({src: blackPieces[i], x: pos, y: 12.5, color: "black", name: namesArray[i], isAlive: true})
+    initialPieces.push({src: images.black_pawn, x: pos, y: 87.5, color: "black", name:"pawn", isAlive: true})
+    initialPieces.push({src: images.white_pawn, x: pos, y: 462.5, color: "white", name:"pawn", isAlive: true})
+    initialPieces.push({src: whitePieces[i], x: pos, y: 537.5, color: "white", name: namesArray[i], isAlive: true})
 }
 
 export const ChessBoard = () => {
-    return <MovePieces pieces={pieces}/>
+    const [whiteKingName, setWhiteKingName] = useState("")
+    const [blackKingName, setBlackKingName] = useState("")
+
+    const handleWhiteKingInput = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+        setWhiteKingName(event.target.value);
+    }, []);
+
+    const handleBlackKingInput = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+        setBlackKingName(event.target.value);
+    }, [])
+
+    return (
+        <div>
+            <MovePieces pieces={pieces} whiteKingName={whiteKingName} blackKingName={blackKingName}/>
+            <NamesInput
+                handleBlackKingInput={handleBlackKingInput}
+                handleWhiteKingInput={handleWhiteKingInput}
+            />
+        </div>
+    )
 }

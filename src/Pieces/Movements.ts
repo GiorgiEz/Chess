@@ -1,4 +1,4 @@
-import {AllMovesFunction, ColorPiece, Moves, Positions, ValidMoves, ValidMovesFunction} from "../types";
+import {AlivePiece, AllMovesFunction, ColorPiece, Moves, Positions, ValidMoves, ValidMovesFunction} from "../types";
 import {King} from "./King";
 import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "./AllMoves";
 import {getCurrPos, getIndexAtPosition, isPieceOnSquare} from "../Canvas/utils";
@@ -6,7 +6,7 @@ import {boardSize, canvasWidth, squareSize} from "../exports";
 
 // Don't let a piece make illegal move if the king is or will be in danger
 export function movementHandler(
-    king: Positions, draggingIndex: number, board: Positions[], pieceColors: ColorPiece[], redSquares: Positions[],
+    king: Positions, draggingIndex: number, board: AlivePiece[], pieceColors: ColorPiece[], redSquares: Positions[],
     allMovesFunction: AllMovesFunction, validMovesFunction: ValidMovesFunction
 ) {
     const {currX, currY} = getCurrPos(draggingIndex, board)
@@ -16,8 +16,8 @@ export function movementHandler(
         const newBoard = board.map(pos => ({...pos}));
 
         const potentialKilledPiece = getIndexAtPosition(move.x, move.y, newBoard)
-        newBoard[index] = {x: move.x, y: move.y}
-        newBoard[potentialKilledPiece] = {x: -1000, y: -1000}
+        newBoard[index] = {x: move.x, y: move.y, isAlive: true}
+        newBoard[potentialKilledPiece] = {x: -1000, y: -1000, isAlive: true}
 
         const allMoves = allMovesFunction(newBoard, pieceColors)
         if (!isPieceOnSquare(king.x, king.y, allMoves)) {
@@ -30,7 +30,7 @@ export function movementHandler(
 
 // Get legal moves for pieces with movementHandler function
 export function pieceMovementHandler
-(piece: ValidMoves, board: Positions[], pieceColors: ColorPiece[], draggingIndex: number, redSquares: Positions[]
+(piece: ValidMoves, board: AlivePiece[], pieceColors: ColorPiece[], draggingIndex: number, redSquares: Positions[]
 ) {
     let whiteKing = {x: board[King.white_king.index].x, y: board[King.white_king.index].y}
     let blackKing = {x: board[King.black_king.index].x, y: board[King.black_king.index].y}

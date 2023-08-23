@@ -1,6 +1,6 @@
 import {AlivePiece, ColorPiece, PieceType, Positions} from "../types";
 import {promotePawnTo} from "./utils";
-import {initialBoard} from "../ChessBoard/ChessBoard";
+import {initialPieces} from "../ChessBoard/ChessBoard";
 import {Canvas} from "./Canvas";
 import {Pawn} from "../Pieces/Pawn";
 import {King} from "../Pieces/King";
@@ -81,11 +81,11 @@ export class Button {
                 Rook.leftWhiteRook.hasMoved = false
                 Rook.leftBlackRook.hasMoved = false
                 for (let i = 0; i < board.length; i++) {
-                    board[i].x = initialBoard[i].x
-                    board[i].y = initialBoard[i].y
+                    board[i].x = initialPieces[i].x
+                    board[i].y = initialPieces[i].y
                     board[i].isAlive = true
-                    pieceColors[i].name = initialBoard[i].name
-                    pieceImages[i].src = initialBoard[i].src
+                    pieceColors[i].name = initialPieces[i].name
+                    pieceImages[i].src = initialPieces[i].src
                 }
             }
         }
