@@ -1,15 +1,17 @@
-import {AlivePiece, AllMovesFunction, ColorPiece, Moves, Positions} from "../types";
+import {AllMovesFunction, ColorPiece, Moves, Positions} from "../types";
 import {Rook} from "./Rook";
-import {
-    getPossibleMovesForBishops, getPossibleMovesForKnights, getPossibleMovesForPawns,
-    getPossibleMovesForQueens, getPossibleMovesForRooks
-} from "./AllMoves";
 import {
     getCurrPos,
     getIndexAtPosition, includes, isPieceOnSquare,
 } from "../Canvas/utils";
-import {getValidMovesForKnightOrKing} from "./Movements";
+import {getValidMovesForKnightOrKing} from "./moves/Movements";
 import {canvasWidth, shiftImage, squareSize} from "../exports";
+import {
+    getPossibleMovesForBishops,
+    getPossibleMovesForKnights, getPossibleMovesForPawns,
+    getPossibleMovesForQueens,
+    getPossibleMovesForRooks
+} from "./moves/AllMoves";
 
 export class King{
     static white_king = {index: 19, hasMoved: false}
@@ -128,7 +130,7 @@ export class King{
     }
 
     //king cant move to the position where enemy pieces can move
-    kingMovementHandler(kingIndex: number, redSquares: Positions[], board: AlivePiece[],
+    kingMovementHandler(kingIndex: number, redSquares: Positions[], board: Positions[],
                         pieceColors: ColorPiece[], allMovesFunction: AllMovesFunction
     ) {
         const {currX, currY} = getCurrPos(kingIndex, board)
@@ -138,8 +140,8 @@ export class King{
             const simulatedBoard = board.map(pos => ({...pos}));
 
             const potentiallyKilledPiece = getIndexAtPosition(move.x, move.y, simulatedBoard)
-            simulatedBoard[kingIndex] = {x: move.x, y: move.y, isAlive: true}
-            simulatedBoard[potentiallyKilledPiece] = {x: -1000, y: -1000, isAlive: true}
+            simulatedBoard[kingIndex] = {x: move.x, y: move.y}
+            simulatedBoard[potentiallyKilledPiece] = {x: -1000, y: -1000}
 
             let allBlackMoves = allMovesFunction(simulatedBoard, pieceColors)
             if (!isPieceOnSquare(move.x, move.y, allBlackMoves)) {

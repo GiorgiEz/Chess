@@ -1,7 +1,8 @@
 import {AlivePiece, ColorPiece, Moves, PieceType, Positions} from "../types";
-import {getIndexAtPosition, isPieceOnSquare,} from "../Canvas/utils"
-import {Canvas} from "../Canvas/Canvas";
-import {boardSize, canvasWidth, sounds, squareSize} from "../exports";
+import {createImage, getIndexAtPosition, isPieceOnSquare,} from "../Canvas/utils"
+import {boardSize, canvasWidth, Pieces, sounds, squareSize} from "../exports";
+import {Score} from "../ChessBoard/Score";
+import {Team} from "../ChessBoard/Team";
 
 export class Pawn {
     static promotedPawnIndex = -1
@@ -73,20 +74,26 @@ export class Pawn {
         return validMoves
     }
 
-    static setLastMovedPawnIndex(pieceColors: ColorPiece[], draggingIndex: number, board: Positions[], y: number){
-        if (pieceColors[draggingIndex].color === "white"){
-            if (board[draggingIndex].y - y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
-            else Pawn.lastMovedPawnIndex = -1
+    killedPieces(enPassantPos: Positions, topLeft: Moves, topRight: Moves, board: AlivePiece[], pieces: PieceType[],
+                 killedPieceIndex: number){
+        let teamKilledPieces: HTMLImageElement[] = []
+        const isEnPassant = !isPieceOnSquare(enPassantPos.x, enPassantPos.y, board) && (
+            (enPassantPos.x === topLeft.x && enPassantPos.y === topLeft.y) ||
+            (enPassantPos.x === topRight.x && enPassantPos.y === topLeft.y))
+
+        if (isEnPassant){
+            board[killedPieceIndex] = {x: -1000, y: -1000, isAlive: false}
+
+            teamKilledPieces.push(createImage(pieces[killedPieceIndex].src))
+            Score.whiteScore ++
+            sounds.capture_sound.play()
         }
-        else {
-            if (y - board[draggingIndex].y === 2*squareSize) Pawn.lastMovedPawnIndex = draggingIndex
-            else Pawn.lastMovedPawnIndex = -1
-        }
+        return teamKilledPieces
     }
 
-    static enPassantMove(enPassantPos: Positions, board: AlivePiece[],
+    enPassantMove(enPassantPos: Positions, board: AlivePiece[],
                          pieceColors: ColorPiece[], draggingIndex: number, pieces: PieceType[]){
-        if (pieceColors[draggingIndex].name === "pawn"){
+        if (pieceColors[draggingIndex].name === Pieces.PAWN){
             const white = pieceColors[draggingIndex].color === "white"
             const topLeft = {
                 x: board[draggingIndex].x - squareSize,
@@ -104,26 +111,10 @@ export class Pawn {
             const killedPieceIndex = white ? getIndexAtPosition(enPassantPos.x, enPassantPos.y+squareSize, board)
                 : getIndexAtPosition(enPassantPos.x, enPassantPos.y-squareSize, board)
 
-            if (white) {
-                if (!isPieceOnSquare(enPassantPos.x, enPassantPos.y, board) && (
-                    (enPassantPos.x === topLeft.x && enPassantPos.y === topLeft.y) ||
-                    (enPassantPos.x === topRight.x && enPassantPos.y === topLeft.y))){
-                    board[killedPieceIndex] = {x: -1000, y: -1000, isAlive: false}
-                    Canvas.blackKilledPieces.push(pieces[killedPieceIndex])
-                    Canvas.whiteScore += 1
-                    sounds.capture_sound.play()
-                }
-            }
-            else {
-                if (!isPieceOnSquare(enPassantPos.x, enPassantPos.y, board) && (
-                    (enPassantPos.x === topLeft.x && enPassantPos.y === topLeft.y) ||
-                    (enPassantPos.x === topRight.x && enPassantPos.y === topLeft.y))){
-                    board[killedPieceIndex] = {x: -1000, y: -1000, isAlive: false}
-                    Canvas.whiteKilledPieces.push(pieces[killedPieceIndex])
-                    Canvas.blackScore += 1
-                    sounds.capture_sound.play()
-                }
-            }
+            if (white)
+                Team.blackKilledPieces.push(...this.killedPieces(enPassantPos, topLeft, topRight, board, pieces, killedPieceIndex))
+            else
+                Team.whiteKilledPieces.push(...this.killedPieces(enPassantPos, topLeft, topRight, board, pieces, killedPieceIndex))
         }
     }
 }

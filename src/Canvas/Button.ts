@@ -1,24 +1,27 @@
-import {AlivePiece, ColorPiece, PieceType, Positions} from "../types";
+import {AlivePiece, ColorPiece, PieceType} from "../types";
 import {promotePawnTo} from "./utils";
 import {initialPieces} from "../ChessBoard/ChessBoard";
 import {Canvas} from "./Canvas";
 import {Pawn} from "../Pieces/Pawn";
 import {King} from "../Pieces/King";
 import {Rook} from "../Pieces/Rook";
-import {boardSize, canvasWidth, images, shiftImage, sounds, squareSize} from "../exports";
+import {boardSize, canvasWidth, pieceImages, Pieces, shiftImage, sounds, squareSize} from "../exports";
+import {Score} from "../ChessBoard/Score";
+import {Team} from "../ChessBoard/Team";
 
-export class Button {
-    x: number
-    y: number
-
-    constructor(mousePosition: Positions) {
-        this.x = mousePosition.x
-        this.y = mousePosition.y
-    }
+export class Button{
+    constructor(
+        private x: number,
+        private y: number,
+        private board: AlivePiece[],
+        private pieces: PieceType[],
+        private pieceColors: ColorPiece[],
+        private pieceImages: HTMLImageElement[],
+    ) {}
 
     toggleSoundButton() {
         if (this.x > squareSize && this.x < 2*squareSize && this.y > 0 && this.y < squareSize
-            && (Canvas.menuScreen || Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate)){
+            && (Canvas.menuScreen || Team.whiteWon || Team.blackWon || Team.staleMate)){
             sounds.sound_button_sound.play()
             Canvas.soundOn = !Canvas.soundOn;
             sounds.move_sound.volume = Canvas.soundOn ? 1 : 0;
@@ -31,61 +34,62 @@ export class Button {
         }
     }
 
-    promotePawnButtons(pieceColors: ColorPiece[], pieces: PieceType[], pieceImages: HTMLImageElement[]) {
-        if (pieceColors[Pawn.promotedPawnIndex]?.name === "pawn") {
+    promotePawnButtons() {
+        if (this.pieceColors[Pawn.promotedPawnIndex]?.name === "pawn") {
             if (this.x >= squareSize && this.x <= 3*squareSize &&
                 this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
-                if (pieceColors[Pawn.promotedPawnIndex].color === "white")
-                    promotePawnTo(images.white_queen, "queen", pieces, pieceColors, pieceImages)
-                else promotePawnTo(images.black_queen, "queen", pieces, pieceColors, pieceImages)
+                if (this.pieceColors[Pawn.promotedPawnIndex].color === "white")
+                    promotePawnTo(pieceImages.white_queen, Pieces.QUEEN, this.pieces, this.pieceColors, this.pieceImages)
+                else promotePawnTo(pieceImages.black_queen, Pieces.QUEEN, this.pieces, this.pieceColors, this.pieceImages)
                 sounds.pawn_promotion_sound.play()
             } if (this.x >= 3*squareSize && this.x <= canvasWidth/2 &&
                 this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
-                if (pieceColors[Pawn.promotedPawnIndex].color === "white")
-                    promotePawnTo(images.white_rook, "rook", pieces, pieceColors, pieceImages)
-                else promotePawnTo(images.black_rook, "rook", pieces, pieceColors, pieceImages)
+                if (this.pieceColors[Pawn.promotedPawnIndex].color === "white")
+                    promotePawnTo(pieceImages.white_rook, Pieces.ROOK, this.pieces, this.pieceColors, this.pieceImages)
+                else promotePawnTo(pieceImages.black_rook, Pieces.ROOK, this.pieces, this.pieceColors, this.pieceImages)
                 sounds.pawn_promotion_sound.play()
             } if (this.x >= canvasWidth/2 && this.x <= canvasWidth/2+squareSize*2 &&
                 this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
-                if (pieceColors[Pawn.promotedPawnIndex].color === "white")
-                    promotePawnTo(images.white_bishop, "bishop", pieces, pieceColors, pieceImages)
-                else promotePawnTo(images.black_bishop, "bishop", pieces, pieceColors, pieceImages)
+                if (this.pieceColors[Pawn.promotedPawnIndex].color === "white")
+                    promotePawnTo(pieceImages.white_bishop, Pieces.BISHOP, this.pieces, this.pieceColors, this.pieceImages)
+                else promotePawnTo(pieceImages.black_bishop, Pieces.BISHOP, this.pieces, this.pieceColors, this.pieceImages)
                 sounds.pawn_promotion_sound.play()
             } if (this.x >= canvasWidth/2+squareSize*2 && this.x <= canvasWidth-squareSize &&
                 this.y >= 3*squareSize && this.y <= boardSize-3*squareSize) {
-                if (pieceColors[Pawn.promotedPawnIndex].color === "white")
-                    promotePawnTo(images.white_knight, "knight", pieces, pieceColors, pieceImages)
-                else promotePawnTo(images.black_knight, "knight", pieces, pieceColors, pieceImages)
+                if (this.pieceColors[Pawn.promotedPawnIndex].color === "white")
+                    promotePawnTo(pieceImages.white_knight, Pieces.KNIGHT, this.pieces, this.pieceColors, this.pieceImages)
+                else promotePawnTo(pieceImages.black_knight, Pieces.KNIGHT, this.pieces, this.pieceColors, this.pieceImages)
                 sounds.pawn_promotion_sound.play()
             }
         }
     }
 
-    restartGameButton(board: AlivePiece[], pieceColors: ColorPiece[], pieceImages: HTMLImageElement[]) {
-        if (Canvas.whiteWon || Canvas.blackWon || Canvas.staleMate) {
+    restartGameButton() {
+        if (Team.whiteWon || Team.blackWon || Team.staleMate) {
             if (this.x >= 4*squareSize + 2*shiftImage && this.x <= 6*squareSize-2*shiftImage
-                && this.y >= boardSize/2 && this.y <= boardSize/2+1.5*squareSize) {
+                    && this.y >= boardSize/2 && this.y <= boardSize/2+1.5*squareSize) {
+
                 sounds.game_start_sound.play()
-                Canvas.whiteWon = false
-                Canvas.blackWon = false
-                Canvas.staleMate = false
-                Canvas.turns = 1
-                Canvas.blackKilledPieces = []
-                Canvas.whiteKilledPieces = []
-                Canvas.blackScore = 0
-                Canvas.whiteScore = 0
+                Team.whiteWon = false
+                Team.blackWon = false
+                Team.staleMate = false
+                Team.turns = 1
+                Team.blackKilledPieces = []
+                Team.whiteKilledPieces = []
+                Score.blackScore = 0
+                Score.whiteScore = 0
                 King.black_king.hasMoved = false
                 King.white_king.hasMoved = false
                 Rook.leftBlackRook.hasMoved = false
                 Rook.rightBlackRook.hasMoved = false
                 Rook.leftWhiteRook.hasMoved = false
                 Rook.leftBlackRook.hasMoved = false
-                for (let i = 0; i < board.length; i++) {
-                    board[i].x = initialPieces[i].x
-                    board[i].y = initialPieces[i].y
-                    board[i].isAlive = true
-                    pieceColors[i].name = initialPieces[i].name
-                    pieceImages[i].src = initialPieces[i].src
+                for (let i = 0; i < this.board.length; i++) {
+                    this.board[i].x = initialPieces[i].x
+                    this.board[i].y = initialPieces[i].y
+                    this.board[i].isAlive = true
+                    this.pieceColors[i].name = initialPieces[i].name
+                    this.pieceImages[i].src = initialPieces[i].src
                 }
             }
         }

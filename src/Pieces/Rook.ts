@@ -1,6 +1,6 @@
 import {Moves, ColorPiece, Positions} from "../types";
 import {King} from "./King";
-import {getValidMovesForRookOrBishop} from "./Movements";
+import {getValidMovesForRookOrBishop} from "./moves/Movements";
 import {canvasWidth, shiftImage, sounds, squareSize} from "../exports";
 
 export class Rook{
@@ -18,7 +18,7 @@ export class Rook{
             .concat(getValidMovesForRookOrBishop(0, 1, x, y, index, board, pieceColors))
     }
 
-    //Move rook if king moves to castling position and set king.hasMoved to true
+    //Move rook if king moves to castling position
     static castleRook(board: Positions[], pieceColors: ColorPiece[], draggingIndex: number, x: number){
         const kingCastlePosRight = canvasWidth/2 + 2*squareSize + shiftImage
         const kingCastlePosLeft = 3*squareSize + shiftImage

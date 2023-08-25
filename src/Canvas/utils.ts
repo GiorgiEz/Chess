@@ -1,6 +1,6 @@
-import {ColorPiece, Positions, AlivePiece, PieceType} from "../types";
+import {ColorPiece, Positions, PieceType} from "../types";
 import {Pawn} from "../Pieces/Pawn";
-import {canvasWidth, imageSize, shiftImage, squareSize} from "../exports";
+import {canvasWidth, imageSize, Pieces, shiftImage, squareSize} from "../exports";
 
 export function getCurrPos(draggingIndex: number, positions: Positions[]) {
     let currX = 0
@@ -45,9 +45,9 @@ export function includes(positionsArray: Positions[], allPositionsArray: Positio
     return false
 }
 
-export function areOnlyKingsAlive(positions: AlivePiece[], pieceColors: ColorPiece[]){
+export function areOnlyKingsAlive(positions: Positions[], pieceColors: ColorPiece[]){
     for (let i = 0; i < pieceColors.length; i++){
-        if (pieceColors[i].name !== "king" && positions[i].isAlive) return false
+        if (pieceColors[i].name !== Pieces.KING && positions[i].x !== -1000) return false
     }
     return true
 }
@@ -62,24 +62,8 @@ export function promotePawnTo(src: string, name: string, pieces: PieceType[],
     Pawn.promotedPawnIndex = -1
 }
 
-export function addScore(killedPieceIndex: number, pieceColors: ColorPiece[]){
-    let playerScore = 0
-    switch (pieceColors[killedPieceIndex].name){
-        case "pawn":
-            playerScore += 1
-            break
-        case "knight":
-            playerScore += 3
-            break
-        case "bishop":
-            playerScore += 3
-            break
-        case "rook":
-            playerScore += 5
-            break
-        case "queen":
-            playerScore += 9
-            break
-    }
-    return playerScore
+export function createImage(src: string){
+    const image = new Image()
+    image.src = src
+    return image
 }
