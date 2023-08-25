@@ -1,8 +1,8 @@
-import {AlivePiece, AllMovesFunction, ColorPiece, Moves, Positions, ValidMoves, ValidMovesFunction} from "../types";
-import {King} from "./King";
+import {AlivePiece, AllMovesFunction, ColorPiece, Moves, Positions, ValidMoves, ValidMovesFunction} from "../../types";
+import {King} from "../King";
 import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "./AllMoves";
-import {getCurrPos, getIndexAtPosition, isPieceOnSquare} from "../Canvas/utils";
-import {boardSize, canvasWidth, squareSize} from "../exports";
+import {getCurrPos, getIndexAtPosition, isPieceOnSquare} from "../../Canvas/utils";
+import {boardSize, canvasWidth, squareSize} from "../../exports";
 
 // Don't let a piece make illegal move if the king is or will be in danger
 export function movementHandler(

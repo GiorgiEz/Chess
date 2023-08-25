@@ -2,24 +2,12 @@ import React, {useEffect, useMemo} from "react";
 import "./ChessBoard.css"
 import {PieceType, Positions} from "../types";
 import {Canvas} from "../Canvas/Canvas";
-
-import {checkmateOrStalemate} from "../Pieces/AllMoves";
-import {getIndexAtPosition, adjustPiecePositions} from "../Canvas/utils";
-
+import {getIndexAtPosition, createImage} from "../Canvas/utils";
 import {Pawn} from "../Pieces/Pawn";
-import {Rook} from "../Pieces/Rook";
 import {Button} from "../Canvas/Button";
-import {boardSize, canvasHeight, canvasWidth, imageSize, sounds, squareSize} from "../exports";
+import {boardSize, canvasHeight, canvasWidth, imageSize, squareSize} from "../exports";
 import {PieceHandler} from "./PieceHandler";
-
-export enum Pieces {
-    PAWN = "pawn",
-    ROOK = "rook",
-    KNIGHT = "knight",
-    BISHOP = "bishop",
-    QUEEN = "queen",
-    KING = "king"
-}
+import {Team} from "./Team";
 
 interface Props {
     pieces: PieceType[];
@@ -40,9 +28,7 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
     let pieceImages: HTMLImageElement[] = useMemo(() => {
         const images = [];
         for (let i = 0; i < pieces.length; i++) {
-            const image = new Image();
-            image.src = pieces[i].src;
-            images.push(image)
+            images.push(createImage(pieces[i].src))
         }
         return images
     }, [pieces])
@@ -73,26 +59,32 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
     }
 
     function onMouseDown (event: React.MouseEvent<HTMLCanvasElement>) {
-        const mousePositions = getMousePositions(event)
-        const index = getIndexAtPosition(mousePositions.x, mousePositions.y, board);
-        if (index !== -1 && !Pawn.promoteScreenOn && !Canvas.whiteWon && !Canvas.blackWon && !Canvas.staleMate && !Canvas.menuScreen) {
+        const {x, y} = getMousePositions(event)
+        const index = getIndexAtPosition(x, y, board);
+        if (index !== -1 && !Pawn.promoteScreenOn && !Team.whiteWon && !Team.blackWon && !Team.staleMate && !Canvas.menuScreen) {
             draggingIndex = index
-            mousePosition = {x: mousePositions.x, y: mousePositions.y};
-            highlightSquares()
+            mousePosition = {x, y};
+
+            let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
+            highlightedSquares = handler.highlightSquares() as Positions[]
         }
-        const button = new Button(mousePosition)
+        const button = new Button(x, y, board, pieces, pieceColors, pieceImages)
 
         button.toggleSoundButton()
-        button.promotePawnButtons(pieceColors, pieces, pieceImages)
-        button.restartGameButton(board, pieceColors, pieceImages)
+        button.promotePawnButtons()
+        button.restartGameButton()
     }
 
     const onMouseUp = () => {
-        movePieces()
-        checkmateOrStalemate(board, pieceColors)
+        let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
+        handler.movePieces()
+        handler.isCheckmateOrStalemate()
 
+        if (PieceHandler.pieceMoved) {
+            highlightedSquares = []
+            PieceHandler.pieceMoved = false
+        }
         redSquares = []
-        highlightedSquares = []
         draggingIndex = -1;
     }
 
@@ -114,66 +106,21 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
         mousePosition = getMousePositions(event)
     }
 
-    const movePieces = () => {
-        if (draggingIndex !== -1 && pieces[draggingIndex].isAlive) {
-            let {x, y} = adjustPiecePositions(mousePosition)
-            let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
-
-            if (Canvas.turns % 2 === 1 && pieceColors[draggingIndex].color === "black") return;
-            if (Canvas.turns % 2 === 0 && pieceColors[draggingIndex].color === "white") return;
-
-            if (pieceColors[draggingIndex].name === Pieces.PAWN && !handler.isValid(handler.handlePawnMovement())) return
-            else if (pieceColors[draggingIndex].name === Pieces.PAWN)
-                Pawn.setLastMovedPawnIndex(pieceColors, draggingIndex, board, y)
-            else Pawn.lastMovedPawnIndex = -1
-
-            if (pieceColors[draggingIndex].name === Pieces.ROOK && !handler.isValid(handler.handleRookMovement())) return;
-            else if (pieceColors[draggingIndex].name === Pieces.ROOK) Rook.hasMoved(pieceColors, draggingIndex)
-
-            if (pieceColors[draggingIndex].name === Pieces.KNIGHT && !handler.isValid(handler.handleKnightMovement())) return;
-
-            if (pieceColors[draggingIndex].name === Pieces.BISHOP && !handler.isValid(handler.handleBishopMovement())) return;
-
-            if (pieceColors[draggingIndex].name === Pieces.QUEEN && !handler.isValid(handler.handleQueenMovement())) return;
-
-            if (pieceColors[draggingIndex].name === Pieces.KING && !handler.isValid(handler.handleKingMovement())) return;
-            else if (pieceColors[draggingIndex].name === Pieces.KING) Rook.castleRook(board, pieceColors, draggingIndex, x)
-
-            sounds.move_sound.play().then(r => r)
-            Canvas.turns ++
-            board[draggingIndex] = {x: x, y: y, isAlive: true}
-        }
-    }
-
-    const highlightSquares = () => {
-        if (Canvas.turns % 2 === 1 && pieceColors[draggingIndex].color === "black") return;
-        if (Canvas.turns % 2 === 0 && pieceColors[draggingIndex].color === "white") return;
-
-        let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
-
-        if (pieceColors[draggingIndex].name === Pieces.PAWN) highlightedSquares = handler.handlePawnMovement()
-        if (pieceColors[draggingIndex].name === Pieces.ROOK) highlightedSquares = handler.handleRookMovement()
-        if (pieceColors[draggingIndex].name === Pieces.KNIGHT) highlightedSquares = handler.handleKnightMovement()
-        if (pieceColors[draggingIndex].name === Pieces.BISHOP) highlightedSquares = handler.handleBishopMovement()
-        if (pieceColors[draggingIndex].name === Pieces.KING) highlightedSquares = handler.handleKingMovement()
-        if (pieceColors[draggingIndex].name === Pieces.QUEEN) highlightedSquares = handler.handleQueenMovement()
-    }
-
     const render = (ctx: CanvasRenderingContext2D) => {
-        const canvas = new Canvas(ctx)
+        const canvas = new Canvas(ctx, mousePosition, draggingIndex, board, pieceImages, whiteKingName, blackKingName, pieceColors)
 
         canvas.clearCanvas()
         canvas.drawBoardBackground()
-        canvas.drawGreenCircles(highlightedSquares)
+        canvas.drawHighlightingCircles(highlightedSquares)
         canvas.drawRedBackground(redSquares)
-        canvas.drawPieces(board, pieceImages, draggingIndex, mousePosition)
+        canvas.drawPieces()
         canvas.drawCoordinates()
-        canvas.drawGameOverScreen(mousePosition, whiteKingName, blackKingName)
-        canvas.promotionScreen(board, pieceColors, mousePosition)
+        canvas.drawGameOverScreen()
+        canvas.promotionScreen()
         canvas.drawKilledPieces()
         canvas.drawMenuScreen()
-        canvas.drawSoundButton(mousePosition)
-        canvas.displayScoreAndNames(whiteKingName, blackKingName, pieceImages)
+        canvas.drawSoundButton()
+        canvas.displayScoreAndNames()
 
         requestAnimationFrame(() => render(ctx));
     }

@@ -1,5 +1,5 @@
 import {ColorPiece, Moves, Positions} from "../types";
-import {getValidMovesForRookOrBishop} from "./Movements";
+import {getValidMovesForRookOrBishop} from "./moves/Movements";
 
 export class Bishop {
     //11 and 23 is for white bishops and 8 and 20 is for black bishops

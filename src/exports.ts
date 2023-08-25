@@ -24,7 +24,7 @@ import staleMate from "../src/Sounds/stalemate.mp3"
 import pawnPromotion from "../src/Sounds/pawn_promotion_sound.mp3"
 import soundButton from "../src/Sounds/sound_button.mp3"
 
-export const images = {
+export const pieceImages = {
     white_pawn: whitePawn,
     white_rook: whiteRook,
     white_queen: whiteQueen,
@@ -37,6 +37,9 @@ export const images = {
     black_knight: blackKnight,
     black_king: blackKing,
     black_bishop: blackBishop,
+}
+
+export const buttonImages = {
     restart_button: restartButton,
     restart_button_hover: restartButtonHover,
     sound_on: soundOn,
@@ -52,6 +55,15 @@ export const sounds = {
     stalemate_sound: new Audio(staleMate),
     pawn_promotion_sound: new Audio(pawnPromotion),
     sound_button_sound: new Audio(soundButton),
+}
+
+export enum Pieces {
+    PAWN = "pawn",
+    ROOK = "rook",
+    KNIGHT = "knight",
+    BISHOP = "bishop",
+    QUEEN = "queen",
+    KING = "king"
 }
 
 export var canvasWidth = 750
