@@ -1,5 +1,5 @@
-import {ColorPiece, Positions} from "../types";
-import {getIndexAtPosition} from "../Canvas/utils";
+import {PieceType} from "../types";
+import {getIndexAtPosition} from "../utils";
 import {getValidMovesForKnightOrKing} from "./moves/Movements";
 import {squareSize} from "../exports";
 
@@ -7,7 +7,7 @@ export class Knight{
     //7 and 27 is for white knights and 4 and 24 is for black knights
     Indexes = [7, 27, 4, 24]
 
-    validMoves(currX: number, currY: number, index: number, board: Positions[], pieceColors: ColorPiece[]) {
+    validMoves(currX: number, currY: number, index: number, board: PieceType[]) {
         const upLeft = {
             x: currX - squareSize, y: currY + 2 * squareSize,
             index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize, board)
@@ -49,7 +49,6 @@ export class Knight{
         }
 
         return getValidMovesForKnightOrKing(
-            [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp],
-            board, index, pieceColors)
+            [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp], board, index)
     }
 }

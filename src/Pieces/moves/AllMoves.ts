@@ -1,5 +1,5 @@
-import {AlivePiece, ColorPiece, Moves, Positions, ValidMovesFunction} from "../../types";
-import {getCurrPos, getIndexAtPosition,} from "../../Canvas/utils";
+import {ColorPiece, Moves, PieceType, Positions, ValidMovesFunction} from "../../types";
+import {getCurrPos, getIndexAtPosition,} from "../../utils";
 import {Pawn} from "../Pawn";
 import {Bishop} from "../Bishop";
 import {King} from "../King";
@@ -10,93 +10,97 @@ import {Pieces} from "../../exports";
 import {movementHandler} from "./Movements";
 
 // function to get all the positions where pieces can move
-export function simulateMoves(indexArray: number[], board: Positions[],
-                              pieceColors: ColorPiece[], validMovesFunction: ValidMovesFunction
-) {
+export function simulateMoves(indexArray: number[], board: PieceType[], validMovesFunction: ValidMovesFunction) {
     let blackMoves: Moves[] = []
     let whiteMoves: Moves[] = []
 
     for (let index of indexArray){
-        if (pieceColors[index].color === "white"){
-            whiteMoves.push(...validMovesFunction(board[index]?.x, board[index]?.y, index, board, pieceColors))
-        } else blackMoves.push(...validMovesFunction(board[index].x, board[index].y, index, board, pieceColors))
+        if (board[index].color === "white"){
+            whiteMoves.push(...validMovesFunction(board[index]?.x, board[index]?.y, index, board))
+        } else {
+            blackMoves.push(...validMovesFunction(board[index].x, board[index].y, index, board))
+        }
     }
 
     for (let index of Pawn.promotedPawns) {
-        if (pieceColors[index]?.name === pieceColors[indexArray[0]].name) {
-            if (pieceColors[index].color === "white") {
-                whiteMoves = [...whiteMoves, ...(validMovesFunction(board[index].x, board[index].y, index, board, pieceColors))]
+        if (board[index]?.name === board[indexArray[0]].name) {
+            if (board[index].color === "white") {
+                whiteMoves = [...whiteMoves, ...(validMovesFunction(board[index].x, board[index].y, index, board))]
             } else {
-                blackMoves = [...blackMoves, ...(validMovesFunction(board[index].x, board[index].y, index, board, pieceColors))]
+                blackMoves = [...blackMoves, ...(validMovesFunction(board[index].x, board[index].y, index, board))]
             }
         }
     }
     return {blackMoves, whiteMoves}
 }
 
-export function getPossibleMovesForBishops(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForBishops(board: PieceType[]){
     const bishop = new Bishop()
-    return simulateMoves(bishop.Indexes, board, pieceColors, bishop.validMoves)
+    return simulateMoves(bishop.Indexes, board, bishop.validMoves)
 }
 
-export function getPossibleMovesForRooks(board: Positions[], color_name_arr: ColorPiece[]){
+export function getPossibleMovesForRooks(board: PieceType[]){
     const rook = new Rook()
-    return simulateMoves(rook.Indexes, board, color_name_arr, rook.validMoves)
+    return simulateMoves(rook.Indexes, board, rook.validMoves)
 }
 
-export function getPossibleMovesForKnights(board: Positions[], color_name_arr: ColorPiece[]){
+export function getPossibleMovesForKnights(board: PieceType[]){
     const knight = new Knight()
-    return simulateMoves(knight.Indexes, board, color_name_arr, knight.validMoves)
+    return simulateMoves(knight.Indexes, board, knight.validMoves)
 }
 
-export function getPossibleMovesForQueens(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForQueens(board: PieceType[]){
     const queen = new Queen()
-    return simulateMoves(queen.Indexes, board, pieceColors, queen.validMoves)
+    return simulateMoves(queen.Indexes, board, queen.validMoves)
 }
 
-export function getPossibleMovesForKing(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForKing(board: PieceType[]){
     const king = new King()
-    return simulateMoves([King.white_king.index, King.black_king.index], board, pieceColors, king.validMoves)
+    return simulateMoves([King.white_king.index, King.black_king.index], board, king.validMoves)
 }
 
-export function getPossibleMovesForPawns(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForPawns(board: PieceType[]){
     const indexes = []
 
     let whiteIndex = 2
     let blackIndex = 1
     while (whiteIndex < board.length){
-        if (pieceColors[whiteIndex].name === Pieces.PAWN) indexes.push(whiteIndex)
-        if (pieceColors[blackIndex].name === Pieces.PAWN) indexes.push(blackIndex)
+        if (board[whiteIndex].name === Pieces.PAWN) {
+            indexes.push(whiteIndex)
+        }
+        if (board[blackIndex].name === Pieces.PAWN) {
+            indexes.push(blackIndex)
+        }
         whiteIndex += 4 // next white pawn
         blackIndex += 4 // next black pawn
     }
     const pawn = new Pawn()
-    return simulateMoves(indexes, board, pieceColors, pawn.validMoves)
+    return simulateMoves(indexes, board, pawn.validMoves)
 }
 
-export function getPossibleMovesForAllBlackPieces(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForAllBlackPieces(board: PieceType[]){
     return [
-        ...getPossibleMovesForRooks(board, pieceColors).blackMoves,
-        ...getPossibleMovesForKnights(board, pieceColors).blackMoves,
-        ...getPossibleMovesForBishops(board, pieceColors).blackMoves,
-        ...getPossibleMovesForQueens(board, pieceColors).blackMoves,
-        ...getPossibleMovesForPawns(board, pieceColors).blackMoves,
-        ...getPossibleMovesForKing(board, pieceColors).blackMoves
+        ...getPossibleMovesForRooks(board).blackMoves,
+        ...getPossibleMovesForKnights(board).blackMoves,
+        ...getPossibleMovesForBishops(board).blackMoves,
+        ...getPossibleMovesForQueens(board).blackMoves,
+        ...getPossibleMovesForPawns(board).blackMoves,
+        ...getPossibleMovesForKing(board).blackMoves
     ]
 }
 
-export function getPossibleMovesForAllWhitePieces(board: Positions[], pieceColors: ColorPiece[]){
+export function getPossibleMovesForAllWhitePieces(board: PieceType[]){
     return [
-        ...getPossibleMovesForRooks(board, pieceColors).whiteMoves,
-        ...getPossibleMovesForKnights(board, pieceColors).whiteMoves,
-        ...getPossibleMovesForBishops(board, pieceColors).whiteMoves,
-        ...getPossibleMovesForQueens(board, pieceColors).whiteMoves,
-        ...getPossibleMovesForPawns(board, pieceColors).whiteMoves,
-        ...getPossibleMovesForKing(board, pieceColors).whiteMoves
+        ...getPossibleMovesForRooks(board).whiteMoves,
+        ...getPossibleMovesForKnights(board).whiteMoves,
+        ...getPossibleMovesForBishops(board).whiteMoves,
+        ...getPossibleMovesForQueens(board).whiteMoves,
+        ...getPossibleMovesForPawns(board).whiteMoves,
+        ...getPossibleMovesForKing(board).whiteMoves
     ]
 }
 
-export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: ColorPiece[]) {
+export function getCurrentPositionsForAllPawns(board: PieceType[]) {
     let blackPositions: Positions[] = []
     let whitePositions: Positions[] = []
 
@@ -107,9 +111,9 @@ export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: 
         let {currX: currXWhite, currY: currYWhite} = getCurrPos(whiteIndex, board)
         let {currX: currXBlack, currY: currYBlack} = getCurrPos(blackIndex, board)
 
-        if (pieceColors[getIndexAtPosition(currXWhite, currYWhite, board)].name === Pieces.PAWN)
+        if (board[getIndexAtPosition(currXWhite, currYWhite, board)].name === Pieces.PAWN)
             whitePositions.push({x: currXWhite, y: currYWhite})
-        if (pieceColors[getIndexAtPosition(currXBlack, currYBlack, board)].name === Pieces.PAWN)
+        if (board[getIndexAtPosition(currXBlack, currYBlack, board)].name === Pieces.PAWN)
             blackPositions.push({x: currXBlack, y: currYBlack})
 
         whiteIndex += 4 // next white pawn
@@ -118,19 +122,23 @@ export function getCurrentPositionsForAllPawns(board: Positions[], pieceColors: 
     return {whitePositions, blackPositions}
 }
 
-function allPossibleMovesHelper(i: number, whiteKing: Positions, blackKing: Positions, board: AlivePiece[],
-                                pieceColors: ColorPiece[], redSquares: Positions[], validMoves: ValidMovesFunction){
+function allPossibleMovesHelper(i: number, whiteKing: Positions, blackKing: Positions, board: PieceType[],
+                                redSquares: Positions[], validMoves: ValidMovesFunction){
     let moves: Moves[] = []
 
-    if(pieceColors[i].color === "white") moves.push(...movementHandler(whiteKing, i, board, pieceColors, redSquares,
-        getPossibleMovesForAllBlackPieces, validMoves))
-    else moves.push(...movementHandler(blackKing, i, board, pieceColors, redSquares,
-        getPossibleMovesForAllWhitePieces, validMoves))
+    if(board[i].color === "white") {
+        moves.push(...movementHandler(whiteKing, i, board, redSquares,
+            getPossibleMovesForAllBlackPieces, validMoves))
+    }
+    else {
+        moves.push(...movementHandler(blackKing, i, board, redSquares,
+            getPossibleMovesForAllWhitePieces, validMoves))
+    }
     return moves
 }
 
 //Find all moves to determine if it's a checkmate or not
-export function allPossibleMoves(board: AlivePiece[], pieceColors: ColorPiece[], redSquares: Positions[]){
+export function allPossibleMoves(board: PieceType[], redSquares: Positions[]){
     const whiteValidMoves: Moves[] = []
     const blackValidMoves: Moves[] = []
     const king = new King()
@@ -138,34 +146,38 @@ export function allPossibleMoves(board: AlivePiece[], pieceColors: ColorPiece[],
     let whiteKing = {x: board[King.white_king.index].x, y: board[King.white_king.index].y}
     let blackKing = {x: board[King.black_king.index].x, y: board[King.black_king.index].y}
 
-    for (let i = 0; i < pieceColors.length; i++){
+    for (let i = 0; i < board.length; i++){
         let moves: Moves[] = [];
 
-        switch (pieceColors[i].name){
+        switch (board[i].name){
             case Pieces.QUEEN:
-                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, pieceColors, redSquares, new Queen().validMoves)
+                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, redSquares, new Queen().validMoves)
                 break
             case Pieces.KING:
-                if (pieceColors[i].color === "white") whiteValidMoves.push(...king.kingMovementHandler(King.white_king.index, redSquares,
-                    board, pieceColors, getPossibleMovesForAllBlackPieces))
+                if (board[i].color === "white") whiteValidMoves.push(...king.kingMovementHandler(King.white_king.index, redSquares,
+                    board, board, getPossibleMovesForAllBlackPieces))
                 else blackValidMoves.push(...king.kingMovementHandler(King.black_king.index, redSquares,
-                    board, pieceColors, getPossibleMovesForAllWhitePieces))
+                    board, board, getPossibleMovesForAllWhitePieces))
                 break
             case Pieces.PAWN:
-                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, pieceColors, redSquares, new Pawn().validMoves)
+                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, redSquares, new Pawn().validMoves)
                 break
             case Pieces.ROOK:
-                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, pieceColors, redSquares, new Rook().validMoves)
+                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, redSquares, new Rook().validMoves)
                 break
             case Pieces.BISHOP:
-                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, pieceColors, redSquares, new Bishop().validMoves)
+                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, redSquares, new Bishop().validMoves)
                 break
             case Pieces.KNIGHT:
-                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, pieceColors, redSquares, new Knight().validMoves)
+                moves = allPossibleMovesHelper(i, whiteKing, blackKing, board, redSquares, new Knight().validMoves)
                 break
         }
-        if(pieceColors[i].color === "white") whiteValidMoves.push(...moves)
-        else blackValidMoves.push(...moves)
+        if(board[i].color === "white") {
+            whiteValidMoves.push(...moves)
+        }
+        else {
+            blackValidMoves.push(...moves)
+        }
     }
     return {whiteValidMoves, blackValidMoves}
 }

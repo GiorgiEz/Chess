@@ -1,10 +1,9 @@
 export type PieceType = {
-    src: string,
+    image: HTMLImageElement,
     x: number,
     y: number,
     color: "white" | "black",
     name: string,
-    isAlive: boolean,
 }
 
 export type Moves = {
@@ -20,17 +19,11 @@ export type ColorPiece = {
     name: string
 }
 
-export type AlivePiece = {
-    x: number,
-    y: number,
-    isAlive: boolean
-}
-
 export type ValidMoves = {
-    validMoves: (x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]) => Moves[]
+    validMoves: (x: number, y: number, index: number, board: PieceType[]) => Moves[]
 }
 
-export type AllMovesFunction = (board: Positions[], color_name_arr: ColorPiece[]) => Moves[];
+export type AllMovesFunction = (board: PieceType[]) => Moves[];
 
 export type ValidMovesFunction =
-    (currX: number, currY: number, index: number, board: Positions[], color_name_arr: ColorPiece[]) => Moves[]
+    (currX: number, currY: number, index: number, board: PieceType[]) => Moves[]

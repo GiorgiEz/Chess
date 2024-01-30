@@ -66,9 +66,7 @@ export enum Pieces {
     KING = "king"
 }
 
-export var canvasWidth = 750
-export var canvasHeight = 675
-export var boardSize = 600
-export var squareSize = 75;
-export var imageSize = 50;
-export var shiftImage = 12.5;
+export var canvasSize = 600
+export var squareSize = canvasSize / 8;
+export var imageSize = (squareSize * 2) / 3;
+export var shiftImage = (squareSize-imageSize) / 2;
