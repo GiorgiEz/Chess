@@ -10,11 +10,11 @@ import {Team} from "./Team";
 
 export const RenderCanvas: React.FC = () => {
     const canvasRef = React.createRef<HTMLCanvasElement>();
+    const board = setupChessBoard();
     let draggingIndex: number = -1
     let mousePosition = {x: 0, y: 0}
     let availableMoves: Positions[] = []
     let threatenedSquares: Positions[] = []
-    const board = setupChessBoard();
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -96,7 +96,7 @@ export const RenderCanvas: React.FC = () => {
         canvas.clearCanvas()
         canvas.drawBoardBackground()
         canvas.drawHighlightingCircles(availableMoves)
-        canvas.drawRedBackground(threatenedSquares)
+        canvas.drawThreatenedSquares(threatenedSquares)
         canvas.drawPieces()
         canvas.drawCoordinates()
         canvas.drawGameOverScreen()

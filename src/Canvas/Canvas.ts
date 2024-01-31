@@ -78,8 +78,8 @@ export class Canvas{
         }
     }
 
-    drawRedBackground(redSquares: Positions[]) {
-        for (let pos of redSquares) {
+    drawThreatenedSquares(threatenedSquares: Positions[]) {
+        for (let pos of threatenedSquares) {
             this.ctx.fillStyle = "#cb0101";
             this.ctx.fillRect(pos.x - 10, pos.y - 10, squareSize - 5, squareSize - 5);
         }
