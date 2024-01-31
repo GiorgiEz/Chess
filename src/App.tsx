@@ -6,7 +6,7 @@ function App() {
       <div>
           <ChessBoard/>
       </div>
-    );
+    )
 }
 
 export default App;

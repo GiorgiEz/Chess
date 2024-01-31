@@ -1,37 +1,20 @@
-import React, {useEffect, useMemo} from "react";
-import "./ChessBoard.css"
-import {PieceType, Positions} from "../types";
+import React, {useEffect} from "react";
+import {Positions} from "../types";
 import {Canvas} from "../Canvas/Canvas";
-import {getIndexAtPosition, createImage} from "../Canvas/utils";
+import {getIndexAtPosition, setupChessBoard} from "../utils";
 import {Pawn} from "../Pieces/Pawn";
 import {Button} from "../Canvas/Button";
-import {boardSize, canvasHeight, canvasWidth, imageSize, squareSize} from "../exports";
+import {canvasSize, imageSize} from "../exports";
 import {PieceHandler} from "./PieceHandler";
 import {Team} from "./Team";
 
-interface Props {
-    pieces: PieceType[];
-    whiteKingName: string;
-    blackKingName: string;
-}
-
-export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingName}) => {
+export const RenderCanvas: React.FC = () => {
     const canvasRef = React.createRef<HTMLCanvasElement>();
     let draggingIndex: number = -1
     let mousePosition = {x: 0, y: 0}
-    let highlightedSquares: Positions[] = []
-    let redSquares: Positions[] = []
-
-    const pieceColors = pieces.map(({color, name}) => ({name, color}))
-    const board = pieces.map(({x,y, isAlive}) => ({x, y, isAlive}))
-
-    let pieceImages: HTMLImageElement[] = useMemo(() => {
-        const images = [];
-        for (let i = 0; i < pieces.length; i++) {
-            images.push(createImage(pieces[i].src))
-        }
-        return images
-    }, [pieces])
+    let availableMoves: Positions[] = []
+    let threatenedSquares: Positions[] = []
+    const board = setupChessBoard();
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -39,7 +22,6 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
         window.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mousemove", onMouseMove);
         canvas.addEventListener("mouseup", onMouseUp);
-        Canvas.menuScreen = true
         render(ctx)
 
         return (() => {
@@ -49,7 +31,7 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
         })
     }, [canvasRef])
 
-    function getMousePositions(event: React.MouseEvent<HTMLCanvasElement> | MouseEvent){
+    const getMousePositions = (event: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
         const canvas = canvasRef.current!;
         const { left, top } = canvas.getBoundingClientRect();
         return {
@@ -58,33 +40,34 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
         }
     }
 
-    function onMouseDown (event: React.MouseEvent<HTMLCanvasElement>) {
+    const onMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const {x, y} = getMousePositions(event)
         const index = getIndexAtPosition(x, y, board);
         if (index !== -1 && !Pawn.promoteScreenOn && !Team.whiteWon && !Team.blackWon && !Team.staleMate && !Canvas.menuScreen) {
             draggingIndex = index
             mousePosition = {x, y};
 
-            let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
-            highlightedSquares = handler.highlightSquares() as Positions[]
+            let handler = new PieceHandler(mousePosition, board, draggingIndex, threatenedSquares)
+            availableMoves = handler.highlightSquares() as Positions[]
         }
-        const button = new Button(x, y, board, pieces, pieceColors, pieceImages)
+        const button = new Button(x, y, board)
 
         button.toggleSoundButton()
         button.promotePawnButtons()
         button.restartGameButton()
+        button.playButton()
     }
 
     const onMouseUp = () => {
-        let handler = new PieceHandler(mousePosition, board, pieceColors, pieces, draggingIndex, redSquares)
+        let handler = new PieceHandler(mousePosition, board, draggingIndex, threatenedSquares)
         handler.movePieces()
         handler.isCheckmateOrStalemate()
 
         if (PieceHandler.pieceMoved) {
-            highlightedSquares = []
+            availableMoves = []
             PieceHandler.pieceMoved = false
         }
-        redSquares = []
+        threatenedSquares = []
         draggingIndex = -1;
     }
 
@@ -92,11 +75,12 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
         let {x, y} = getMousePositions(event)
         const canvas = canvasRef.current!;
         canvas.style.cursor = "grabbing";
+
         //Can't move pieces outside of canvas
-        const borderX = canvasWidth - squareSize - imageSize
-        const borderY = boardSize - imageSize
+        const borderX = canvasSize - imageSize
+        const borderY = canvasSize - imageSize
         if (x >= borderX) x = borderX
-        if (x <= squareSize) x = squareSize
+        if (x <= 0) x = 0
         if (y <= 0) y = 0
         if (y >= borderY) y = borderY
         mousePosition = {x, y};
@@ -107,31 +91,30 @@ export const MovePieces: React.FC<Props> = ({pieces, whiteKingName, blackKingNam
     }
 
     const render = (ctx: CanvasRenderingContext2D) => {
-        const canvas = new Canvas(ctx, mousePosition, draggingIndex, board, pieceImages, whiteKingName, blackKingName, pieceColors)
+        const canvas = new Canvas(ctx, mousePosition, draggingIndex, board)
 
         canvas.clearCanvas()
         canvas.drawBoardBackground()
-        canvas.drawHighlightingCircles(highlightedSquares)
-        canvas.drawRedBackground(redSquares)
+        canvas.drawHighlightingCircles(availableMoves)
+        canvas.drawRedBackground(threatenedSquares)
         canvas.drawPieces()
         canvas.drawCoordinates()
         canvas.drawGameOverScreen()
         canvas.promotionScreen()
-        canvas.drawKilledPieces()
         canvas.drawMenuScreen()
         canvas.drawSoundButton()
-        canvas.displayScoreAndNames()
+        canvas.drawPlayButton()
 
         requestAnimationFrame(() => render(ctx));
     }
 
     return (
         <canvas
-            className={"chessboard"}
             ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
+            className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            height={canvasSize}
+            width={canvasSize}
             onMouseDown={onMouseDown}
-        />
+        ></canvas>
     )
 }

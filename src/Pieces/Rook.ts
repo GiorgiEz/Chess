@@ -1,7 +1,7 @@
-import {Moves, ColorPiece, Positions} from "../types";
+import {Moves, ColorPiece, Positions, PieceType} from "../types";
 import {King} from "./King";
 import {getValidMovesForRookOrBishop} from "./moves/Movements";
-import {canvasWidth, shiftImage, sounds, squareSize} from "../exports";
+import {canvasSize, shiftImage, sounds, squareSize} from "../exports";
 
 export class Rook{
     Indexes = [3, 31, 0, 28]
@@ -11,27 +11,39 @@ export class Rook{
     static leftBlackRook = {index: 0, hasMoved: false}
     static rightBlackRook = {index: 28, hasMoved: false}
 
-    validMoves(x: number, y: number, index: number, board: Positions[], pieceColors: ColorPiece[]): Moves[] {
-        return getValidMovesForRookOrBishop(-1, 0, x, y, index, board, pieceColors)
-            .concat(getValidMovesForRookOrBishop(1, 0, x, y, index, board, pieceColors))
-            .concat(getValidMovesForRookOrBishop(0, -1, x, y, index, board, pieceColors))
-            .concat(getValidMovesForRookOrBishop(0, 1, x, y, index, board, pieceColors))
+    validMoves(x: number, y: number, index: number, board: PieceType[]): Moves[] {
+        return getValidMovesForRookOrBishop(-1, 0, x, y, index, board,)
+            .concat(getValidMovesForRookOrBishop(1, 0, x, y, index, board))
+            .concat(getValidMovesForRookOrBishop(0, -1, x, y, index, board))
+            .concat(getValidMovesForRookOrBishop(0, 1, x, y, index, board))
     }
 
     //Move rook if king moves to castling position
-    static castleRook(board: Positions[], pieceColors: ColorPiece[], draggingIndex: number, x: number){
-        const kingCastlePosRight = canvasWidth/2 + 2*squareSize + shiftImage
+    static castleRook(board: PieceType[], draggingIndex: number, x: number){
+        const kingCastlePosRight = canvasSize/2 + 2*squareSize + shiftImage
         const kingCastlePosLeft = 3*squareSize + shiftImage
-        if (pieceColors[draggingIndex].color === "white" && !King.white_king.hasMoved) {
-            if (x === kingCastlePosRight || x === kingCastlePosLeft) sounds.castle_sound.play()
-            if (x === kingCastlePosRight) board[Rook.rightWhiteRook.index].x = canvasWidth/2 + squareSize + shiftImage
-            if (x === kingCastlePosLeft) board[Rook.leftWhiteRook.index].x = canvasWidth/2 - squareSize + shiftImage
+        if (board[draggingIndex].color === "white" && !King.white_king.hasMoved) {
+            if (x === kingCastlePosRight || x === kingCastlePosLeft){
+                sounds.castle_sound.play()
+            }
+            if (x === kingCastlePosRight) {
+                board[Rook.rightWhiteRook.index].x = canvasSize/2 + shiftImage
+            }
+            if (x === kingCastlePosLeft) {
+                board[Rook.leftWhiteRook.index].x = canvasSize/2 + shiftImage
+            }
             King.white_king.hasMoved = true
         }
-        if (pieceColors[draggingIndex].color === "black" && !King.black_king.hasMoved){
-            if (x === kingCastlePosRight || x === kingCastlePosLeft) sounds.castle_sound.play()
-            if (x === kingCastlePosRight) board[Rook.rightBlackRook.index].x = 462.5
-            if (x === kingCastlePosLeft) board[Rook.leftBlackRook.index].x = 312.5
+        if (board[draggingIndex].color === "black" && !King.black_king.hasMoved){
+            if (x === kingCastlePosRight || x === kingCastlePosLeft) {
+                sounds.castle_sound.play()
+            }
+            if (x === kingCastlePosRight) {
+                board[Rook.rightBlackRook.index].x = 462.5
+            }
+            if (x === kingCastlePosLeft) {
+                board[Rook.leftBlackRook.index].x = 312.5
+            }
             King.black_king.hasMoved = true
         }
     }
