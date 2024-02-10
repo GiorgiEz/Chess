@@ -1,8 +1,6 @@
 import {PieceType, Positions} from "../Utils/types";
 import Game from "../ChessBoard/Game";
-import {getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
 import {Pieces} from "../Utils/exports";
-import {getValidMovesForKnightOrKing} from "./moves/Movements";
 
 export class King{
     private game: Game;
@@ -48,29 +46,7 @@ export class King{
         const upRight = {
             x: x + this.game.squareSize, y: y + this.game.squareSize,
         }
-        return getValidMovesForKnightOrKing(piece, [left, right, down, up, downLeft, downRight, upLeft, upRight], chessboard)
-    }
-
-    //king cant move to the position where enemy pieces can move
-    kingMovementHandler(king: PieceType, allMovesFunction: any) {
-        const validMoves: Positions[] = []
-
-        for (let move of this.validMoves(king, this.game.chessboard)) {
-            let chessboardCopy = this.game.chessboard.map(pos => ({...pos}));
-
-            const potentiallyKilledPiece = getPieceAtPosition(move.x, move.y)
-            if (potentiallyKilledPiece) {
-                chessboardCopy[potentiallyKilledPiece.index] = {...potentiallyKilledPiece, x: -1000, y: -1000}
-            }
-            chessboardCopy[king.index] = {...king, x: move.x, y: move.y};
-
-            if (!isPieceOnSquare(move.x, move.y, allMovesFunction(chessboardCopy))) {
-                if (potentiallyKilledPiece !== null && potentiallyKilledPiece.color !== king.color) {
-                    this.game.threatenedSquares.push(move)
-                }
-                validMoves.push(move)
-            }
-        }
-        return validMoves
+        return this.game.getValidMovesForKnightOrKing(piece,
+            [left, right, down, up, downLeft, downRight, upLeft, upRight], chessboard)
     }
 }

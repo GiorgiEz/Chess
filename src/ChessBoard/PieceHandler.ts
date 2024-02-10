@@ -1,10 +1,6 @@
 import {Positions} from "../Utils/types";
 import {
-    adjustPiecePositions,
-    areOnlyKingsAlive, comparePositions,
-    getPieceAtPosition,
-    isPieceOnSquare
-} from "../Utils/utilFunctions";
+    adjustPiecePositions, areOnlyKingsAlive, comparePositions, getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
 import {Pawn} from "../Pieces/Pawn";
 import {Pieces, sounds} from "../Utils/exports";
 import {King} from "../Pieces/King";
@@ -12,62 +8,49 @@ import {Queen} from "../Pieces/Queen";
 import {Rook} from "../Pieces/Rook";
 import {Bishop} from "../Pieces/Bishop";
 import {Knight} from "../Pieces/Knight";
-import {
-    allPossibleMoves,
-    allPossibleMovesHelper,
-    getPossibleMovesForAllBlackPieces,
-    getPossibleMovesForAllWhitePieces
-} from "../Pieces/moves/AllMoves";
+import {FilterAllPotentialMoves, filterMovesByCheckingKingSafety} from "../Pieces/ValidMoves";
 import Game from "./Game";
 
-export class PieceHandler{
+export class PieceHandler {
     private game: Game;
 
-    constructor(
-        private mousePosition: Positions
-        ) {
+    constructor() {
         this.game = Game.getInstance();
     }
 
     handleKingMovement() {
         const king = new King()
-
-        if (this.game.draggingPiece!.color === "white") {
-            return king.kingMovementHandler(King.getWhiteKing(this.game.chessboard), getPossibleMovesForAllBlackPieces)
-        }
-        else {
-            return king.kingMovementHandler(King.getBlackKing(this.game.chessboard), getPossibleMovesForAllWhitePieces)
-        }
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, king.validMoves.bind(king))
     }
 
     handleQueenMovement() {
         const queen = new Queen()
-        return allPossibleMovesHelper(this.game.draggingPiece!, queen.validMoves.bind(queen))
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, queen.validMoves.bind(queen))
     }
 
     handleRookMovement() {
         const rook = new Rook()
-        return allPossibleMovesHelper(this.game.draggingPiece!, rook.validMoves.bind(rook))
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, rook.validMoves.bind(rook))
     }
 
     handleBishopMovement() {
         const bishop = new Bishop()
-        return allPossibleMovesHelper(this.game.draggingPiece!, bishop.validMoves.bind(bishop))
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, bishop.validMoves.bind(bishop))
     }
 
     handleKnightMovement() {
         const knight = new Knight()
-        return allPossibleMovesHelper(this.game.draggingPiece!, knight.validMoves.bind(knight))
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, knight.validMoves.bind(knight))
     }
 
     handlePawnMovement() {
         const pawn = new Pawn()
-        return allPossibleMovesHelper(this.game.draggingPiece!, pawn.validMoves.bind(pawn))
+        return filterMovesByCheckingKingSafety(this.game.draggingPiece!, pawn.validMoves.bind(pawn))
     }
 
     // check if the position where the piece is moved is in the valid moves array
     isValid(validMoves: Positions[]) {
-        let {x, y} = adjustPiecePositions(this.mousePosition)
+        let {x, y} = adjustPiecePositions(this.game.mousePosition)
         for (let move of validMoves) {
             if (x === move.x && y === move.y) {
                 this.killPiece({x: move.x, y: move.y});
@@ -108,35 +91,38 @@ export class PieceHandler{
     }
 
     highlightSquares() {
-        let highlightedSquares: Positions[] = []
         if ((this.game.turns % 2 === 1 && this.game.draggingPiece!.color === "black") ||
-            (this.game.turns % 2 === 0 && this.game.draggingPiece!.color === "white")) {
+            (this.game.turns % 2 === 0 && this.game.draggingPiece!.color === "white") || !this.game.draggingPiece) {
             return;
         }
+        let highlightedSquares: Positions[] = []
 
-        if (this.game.draggingPiece!.name === Pieces.PAWN) {
-            highlightedSquares = this.handlePawnMovement()
-        }
-        if (this.game.draggingPiece!.name === Pieces.ROOK) {
-            highlightedSquares = this.handleRookMovement()
-        }
-        if (this.game.draggingPiece!.name === Pieces.KNIGHT) {
-            highlightedSquares = this.handleKnightMovement()
-        }
-        if (this.game.draggingPiece!.name === Pieces.BISHOP) {
-            highlightedSquares = this.handleBishopMovement()
-        }
-        if (this.game.draggingPiece!.name === Pieces.KING) {
-            highlightedSquares = this.handleKingMovement()
-        }
-        if (this.game.draggingPiece!.name === Pieces.QUEEN) {
-            highlightedSquares = this.handleQueenMovement()
+        switch (this.game.draggingPiece.name){
+            case Pieces.PAWN:
+                highlightedSquares = this.handlePawnMovement()
+                break
+            case Pieces.ROOK:
+                highlightedSquares = this.handleRookMovement()
+                break
+            case Pieces.KNIGHT:
+                highlightedSquares = this.handleKnightMovement()
+                break
+            case Pieces.BISHOP:
+                highlightedSquares = this.handleBishopMovement()
+                break
+            case Pieces.KING:
+                highlightedSquares = this.handleKingMovement()
+                break
+            case Pieces.QUEEN:
+                highlightedSquares = this.handleQueenMovement()
+                break
+            default: break;
         }
         return highlightedSquares
     }
 
     isCheckmateOrStalemate(){
-        const {whiteValidMoves, blackValidMoves} = allPossibleMoves()
+        const {whiteValidMoves, blackValidMoves} = FilterAllPotentialMoves()
 
         const whiteKingUnderAttack = blackValidMoves.filter(move => comparePositions(move, King.getWhiteKing(this.game.chessboard)))
         const blackKingUnderAttack = whiteValidMoves.filter(move => comparePositions(move, King.getBlackKing(this.game.chessboard)))
@@ -169,7 +155,7 @@ export class PieceHandler{
             (this.game.draggingPiece === null || this.game.draggingPiece.x < 0)) {
             return;
         }
-        const { x, y } = adjustPiecePositions(this.mousePosition);
+        const { x, y } = adjustPiecePositions(this.game.mousePosition);
 
         switch (this.game.draggingPiece.name) {
             case Pieces.PAWN:

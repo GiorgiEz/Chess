@@ -10,10 +10,10 @@ import blackQueen from '../assets/black-queen.png'
 import blackKnight from '../assets/black-knight.png';
 import blackKing from '../assets/black-king.png';
 import blackBishop from '../assets/black-bishop.png';
-import restartButton from '../assets/restart_button.png'
-import restartButtonHover from '../assets/restart_button_hover.png'
-import soundOn from "../assets/sound_on.png"
-import soundOff from "../assets/sound_off.png"
+import restartButton from '../assets/buttons/restart_button.png'
+import restartButtonHover from '../assets/buttons/restart_button_hover.png'
+import soundOn from "../assets/buttons/sound_on.png"
+import soundOff from "../assets/buttons/sound_off.png"
 
 import moveSound from "../Sounds/move.mp3"
 import captureSound from "../Sounds/capture.mp3"

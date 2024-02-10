@@ -1,5 +1,4 @@
 import {PieceType, Positions} from "../Utils/types";
-import {getValidMovesForRookOrBishop} from "./moves/Movements";
 import {Pieces} from "../Utils/exports";
 import Game from "../ChessBoard/Game";
 
@@ -14,27 +13,26 @@ export class Rook{
         this.game = Game.getInstance();
     }
 
-    static getLeftWhiteRook(pieces: any){
-        return pieces.get(Pieces.ROOK)?.filter((rook: PieceType) => rook.color === "white")[0]
+    static getLeftWhiteRook(chessboard: PieceType[]){
+        return chessboard.filter((piece: PieceType) => piece.color === "white" && piece.name === Pieces.ROOK)[0]
     }
 
-    static getRightWhiteRook(pieces: any){
-        return pieces.get(Pieces.ROOK)?.filter((rook: PieceType) => rook.color === "white")[1]
+    static getRightWhiteRook(chessboard: PieceType[]){
+        return chessboard.filter((piece: PieceType) => piece.color === "white" && piece.name === Pieces.ROOK)[1]
     }
 
-    static getLeftBlackRook(pieces: any){
-        return pieces.get(Pieces.ROOK)?.filter((rook: PieceType) => rook.color === "black")[0]
+    static getLeftBlackRook(chessboard: PieceType[]){
+        return chessboard.filter((piece: PieceType) => piece.color === "black" && piece.name === Pieces.ROOK)[0]
     }
 
-    static getRightBlackRook(pieces: any){
-        return pieces.get(Pieces.ROOK)?.filter((rook: PieceType) => rook.color === "black")[1]
+    static getRightBlackRook(chessboard: PieceType[]){
+        return chessboard.filter((piece: PieceType) => piece.color === "black" && piece.name === Pieces.ROOK)[1]
     }
-
 
     validMoves(piece: PieceType, chessboard: PieceType[]): Positions[] {
-        return getValidMovesForRookOrBishop(-1, 0, piece, chessboard)
-            .concat(getValidMovesForRookOrBishop(1, 0, piece, chessboard))
-            .concat(getValidMovesForRookOrBishop(0, -1, piece, chessboard))
-            .concat(getValidMovesForRookOrBishop(0, 1, piece, chessboard))
+        return this.game.getValidMovesForRookOrBishop(-1, 0, piece, chessboard)
+            .concat(this.game.getValidMovesForRookOrBishop(1, 0, piece, chessboard))
+            .concat(this.game.getValidMovesForRookOrBishop(0, -1, piece, chessboard))
+            .concat(this.game.getValidMovesForRookOrBishop(0, 1, piece, chessboard))
     }
 }

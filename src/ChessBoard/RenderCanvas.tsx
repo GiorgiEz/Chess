@@ -10,9 +10,6 @@ export const RenderCanvas: React.FC = () => {
     const canvasRef = React.createRef<HTMLCanvasElement>();
     const game = Game.getInstance()
 
-    let mousePosition = {x: 0, y: 0}
-    let highlightedMoves: Positions[] = []
-
     useEffect(() => {
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
@@ -42,10 +39,10 @@ export const RenderCanvas: React.FC = () => {
         const piece = getPieceAtPosition(x, y);
         if (piece !== null && !game.isPromotionScreenOn && !game.whiteWon && !game.blackWon && !game.staleMate && !game.isMenuScreenOn) {
             game.draggingPiece = piece
-            mousePosition = {x, y};
+            game.mousePosition = {x, y};
 
-            let handler = new PieceHandler(mousePosition)
-            highlightedMoves = handler.highlightSquares() as Positions[]
+            let handler = new PieceHandler()
+            game.highlightedMoves = handler.highlightSquares() as Positions[]
         }
 
         const button = new Button(x, y)
@@ -57,12 +54,12 @@ export const RenderCanvas: React.FC = () => {
     }
 
     const onMouseUp = () => {
-        let handler = new PieceHandler(mousePosition)
+        let handler = new PieceHandler()
         handler.movePieces()
         handler.isCheckmateOrStalemate()
 
         if (game.pieceMoved) {
-            highlightedMoves = []
+            game.highlightedMoves = []
             game.pieceMoved = false
         }
         game.threatenedSquares = []
@@ -75,33 +72,33 @@ export const RenderCanvas: React.FC = () => {
         canvas.style.cursor = "grabbing";
 
         //Can't move pieces outside of canvas
-        const borderX = game.canvasSize - game.imageSize
-        const borderY = game.canvasSize - game.imageSize
+        const borderX = game.canvasSize - 2*game.shiftImage
+        const borderY = game.canvasSize - 2*game.shiftImage
         if (x >= borderX) {
             x = borderX
         }
-        if (x <= 0) {
-            x = 0
+        if (x <= 2*game.shiftImage) {
+            x = 2*game.shiftImage
         }
-        if (y <= 0) {
-            y = 0
+        if (y <= 2*game.shiftImage) {
+            y = 2*game.shiftImage
         }
         if (y >= borderY) {
             y = borderY
         }
-        mousePosition = {x, y};
+        game.mousePosition = {x, y};
     }
 
     const onMouseMove = (event: MouseEvent) => {
-        mousePosition = getMousePositions(event)
+        game.mousePosition = getMousePositions(event)
     }
 
     const render = (ctx: CanvasRenderingContext2D) => {
-        const canvas = new Canvas(ctx, mousePosition)
+        const canvas = new Canvas(ctx)
 
         canvas.clearCanvas()
         canvas.drawBoardBackground()
-        canvas.drawHighlightingCircles(highlightedMoves)
+        canvas.drawHighlightingCircles()
         canvas.drawThreatenedSquares()
         canvas.drawPieces()
         canvas.drawCoordinates()

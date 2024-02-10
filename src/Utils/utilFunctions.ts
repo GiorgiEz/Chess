@@ -25,8 +25,8 @@ export function getPieceAtPosition(x: number, y: number, chessboard = game.chess
     return null;
 }
 
-export function isPieceOnSquare(x: number, y: number, chessboard: PieceType[]) {
-    return chessboard.some((piece: PieceType) => piece.x === x && piece.y === y);
+export function isPieceOnSquare(x: number, y: number, chessboard: Positions[]) {
+    return chessboard.some((piece) => piece.x === x && piece.y === y);
 }
 
 export function comparePositions(pos1: Positions, pos2: Positions){
