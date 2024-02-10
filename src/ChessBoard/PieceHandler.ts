@@ -1,171 +1,188 @@
-import {Moves, PieceType, Positions} from "../types";
-import {adjustPiecePositions, areOnlyKingsAlive, getIndexAtPosition, isPieceOnSquare} from "../utils";
+import {Positions} from "../Utils/types";
+import {
+    adjustPiecePositions,
+    areOnlyKingsAlive, comparePositions,
+    getPieceAtPosition,
+    isPieceOnSquare
+} from "../Utils/utilFunctions";
 import {Pawn} from "../Pieces/Pawn";
-import {Pieces, sounds, squareSize} from "../exports";
+import {Pieces, sounds} from "../Utils/exports";
 import {King} from "../Pieces/King";
 import {Queen} from "../Pieces/Queen";
 import {Rook} from "../Pieces/Rook";
 import {Bishop} from "../Pieces/Bishop";
 import {Knight} from "../Pieces/Knight";
-import {pieceMovementHandler} from "../Pieces/moves/Movements";
-import {allPossibleMoves, getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "../Pieces/moves/AllMoves";
-import {Team} from "./Team";
+import {
+    allPossibleMoves,
+    allPossibleMovesHelper,
+    getPossibleMovesForAllBlackPieces,
+    getPossibleMovesForAllWhitePieces
+} from "../Pieces/moves/AllMoves";
+import Game from "./Game";
 
-export class PieceHandler {
-    static pieceMoved = false
-    private isWhitesTurn = Team.turns % 2 === 1
+export class PieceHandler{
+    private game: Game;
 
     constructor(
-        private mousePosition: Positions,
-        private board: PieceType[],
-        private draggingIndex: number,
-        private redSquares: Positions[],
-    ) {}
+        private mousePosition: Positions
+        ) {
+        this.game = Game.getInstance();
+    }
 
     handleKingMovement() {
         const king = new King()
 
-        if (this.board[this.draggingIndex].color === "white") {
-            return king.kingMovementHandler(King.white_king.index, this.redSquares,
-                this.board, this.board, getPossibleMovesForAllBlackPieces)
+        if (this.game.draggingPiece!.color === "white") {
+            return king.kingMovementHandler(King.getWhiteKing(this.game.chessboard), getPossibleMovesForAllBlackPieces)
         }
         else {
-            return king.kingMovementHandler(King.black_king.index, this.redSquares,
-                this.board, this.board, getPossibleMovesForAllWhitePieces)
+            return king.kingMovementHandler(King.getBlackKing(this.game.chessboard), getPossibleMovesForAllWhitePieces)
         }
     }
 
     handleQueenMovement() {
-        return pieceMovementHandler(new Queen(), this.board, this.draggingIndex, this.redSquares)
+        const queen = new Queen()
+        return allPossibleMovesHelper(this.game.draggingPiece!, queen.validMoves.bind(queen))
     }
 
     handleRookMovement() {
-        return pieceMovementHandler(new Rook(), this.board, this.draggingIndex, this.redSquares)
+        const rook = new Rook()
+        return allPossibleMovesHelper(this.game.draggingPiece!, rook.validMoves.bind(rook))
     }
 
     handleBishopMovement() {
-        return pieceMovementHandler(new Bishop(), this.board, this.draggingIndex, this.redSquares)
+        const bishop = new Bishop()
+        return allPossibleMovesHelper(this.game.draggingPiece!, bishop.validMoves.bind(bishop))
     }
 
     handleKnightMovement() {
-        return pieceMovementHandler(new Knight(), this.board, this.draggingIndex, this.redSquares)
+        const knight = new Knight()
+        return allPossibleMovesHelper(this.game.draggingPiece!, knight.validMoves.bind(knight))
     }
 
     handlePawnMovement() {
-        return pieceMovementHandler(new Pawn(), this.board, this.draggingIndex, this.redSquares)
+        const pawn = new Pawn()
+        return allPossibleMovesHelper(this.game.draggingPiece!, pawn.validMoves.bind(pawn))
     }
 
     // check if the position where the piece is moved is in the valid moves array
-    isValid(validMoves: Moves[]) {
+    isValid(validMoves: Positions[]) {
         let {x, y} = adjustPiecePositions(this.mousePosition)
         for (let move of validMoves) {
             if (x === move.x && y === move.y) {
-                this.killPiece({x: move.x, y: move.y}); return true
+                this.killPiece({x: move.x, y: move.y});
+                return true
             }
         }
         return false
     }
 
-    killPiece(killedPiecePos: Positions) {
-        const pawn = new Pawn()
-        pawn.enPassantMove(killedPiecePos, this.board, this.draggingIndex)
-        let killedPieceIndex = getIndexAtPosition(killedPiecePos.x, killedPiecePos.y, this.board)
-
-        if (isPieceOnSquare(killedPiecePos.x, killedPiecePos.y, this.board) && this.board[killedPieceIndex] &&
-            this.board[killedPieceIndex].color !== this.board[this.draggingIndex].color) {
-            sounds.capture_sound.play()
-
-            this.board[killedPieceIndex] = {...this.board[killedPieceIndex], x: -1000, y: -1000}
+    isEnPassant(pos: Positions){
+        if (this.game.draggingPiece && this.game.draggingPiece!.name === Pieces.PAWN && this.game.potentialEnPassantPawn
+            && pos.x - this.game.potentialEnPassantPawn.x === 0)
+        {
+            if (this.game.draggingPiece!.color === "white") {
+                if (this.game.potentialEnPassantPawn.y - pos.y === this.game.squareSize) {
+                    return true
+                }
+            } else {
+                if (pos.y - this.game.potentialEnPassantPawn.y === this.game.squareSize) {
+                    return true
+                }
+            }
         }
-        return killedPieceIndex
+        return false
+    }
+
+    killPiece(pos: Positions) {
+        let killedPiece = getPieceAtPosition(pos.x, pos.y)
+
+        if (killedPiece && isPieceOnSquare(pos.x, pos.y, this.game.chessboard)) {
+            this.game.chessboard[killedPiece.index] = {...killedPiece, x: -1000, y: -1000}
+            sounds.capture_sound.play()
+        }
+        if (this.isEnPassant(pos) && this.game.potentialEnPassantPawn){
+            this.game.chessboard[this.game.potentialEnPassantPawn.index] = {...this.game.potentialEnPassantPawn, x: -1000, y: -1000}
+            sounds.capture_sound.play()
+        }
     }
 
     highlightSquares() {
         let highlightedSquares: Positions[] = []
-        if ((this.isWhitesTurn && this.board[this.draggingIndex].color === "black") ||
-            (!this.isWhitesTurn && this.board[this.draggingIndex].color === "white")) {
+        if ((this.game.turns % 2 === 1 && this.game.draggingPiece!.color === "black") ||
+            (this.game.turns % 2 === 0 && this.game.draggingPiece!.color === "white")) {
             return;
         }
 
-        if (this.board[this.draggingIndex].name === Pieces.PAWN) {
+        if (this.game.draggingPiece!.name === Pieces.PAWN) {
             highlightedSquares = this.handlePawnMovement()
         }
-        if (this.board[this.draggingIndex].name === Pieces.ROOK) {
+        if (this.game.draggingPiece!.name === Pieces.ROOK) {
             highlightedSquares = this.handleRookMovement()
         }
-        if (this.board[this.draggingIndex].name === Pieces.KNIGHT) {
+        if (this.game.draggingPiece!.name === Pieces.KNIGHT) {
             highlightedSquares = this.handleKnightMovement()
         }
-        if (this.board[this.draggingIndex].name === Pieces.BISHOP) {
+        if (this.game.draggingPiece!.name === Pieces.BISHOP) {
             highlightedSquares = this.handleBishopMovement()
         }
-        if (this.board[this.draggingIndex].name === Pieces.KING) {
+        if (this.game.draggingPiece!.name === Pieces.KING) {
             highlightedSquares = this.handleKingMovement()
         }
-        if (this.board[this.draggingIndex].name === Pieces.QUEEN) {
+        if (this.game.draggingPiece!.name === Pieces.QUEEN) {
             highlightedSquares = this.handleQueenMovement()
         }
         return highlightedSquares
     }
 
     isCheckmateOrStalemate(){
-        const whiteMoves = allPossibleMoves(this.board, []).whiteValidMoves
-        const blackMoves = allPossibleMoves(this.board,  []).blackValidMoves
+        const {whiteValidMoves, blackValidMoves} = allPossibleMoves()
 
-        const whiteKingUnderAttack = blackMoves.filter(move => move.index === King.white_king.index)
-        const blackKingUnderAttack = whiteMoves.filter(move => move.index === King.black_king.index)
+        const whiteKingUnderAttack = blackValidMoves.filter(move => comparePositions(move, King.getWhiteKing(this.game.chessboard)))
+        const blackKingUnderAttack = whiteValidMoves.filter(move => comparePositions(move, King.getBlackKing(this.game.chessboard)))
 
-        if (!whiteMoves.length && whiteKingUnderAttack.length && this.isWhitesTurn && !Team.blackWon) {
+        if (!whiteValidMoves.length && whiteKingUnderAttack.length && this.game.turns % 2 === 1 && !this.game.blackWon) {
             sounds.checkmate_sound.play()
-            Team.blackWon = true
+            this.game.blackWon = true
         }
-        if (!blackMoves.length && blackKingUnderAttack.length && !this.isWhitesTurn && !Team.whiteWon) {
+        if (!blackValidMoves.length && blackKingUnderAttack.length && this.game.turns % 2 === 0 && !this.game.whiteWon) {
             sounds.checkmate_sound.play()
-            Team.whiteWon = true
+            this.game.whiteWon = true
         }
-        if (!whiteMoves.length && !whiteKingUnderAttack.length && this.isWhitesTurn && !Team.staleMate) {
+        if (!whiteValidMoves.length && !whiteKingUnderAttack.length && this.game.turns % 2 === 1 && !this.game.staleMate) {
             sounds.stalemate_sound.play()
-            Team.staleMate = true
+            this.game.staleMate = true
         }
-        if (!blackMoves.length && !blackKingUnderAttack.length && !this.isWhitesTurn && !Team.staleMate) {
+        if (!blackValidMoves.length && !blackKingUnderAttack.length && this.game.turns % 2 === 0 && !this.game.staleMate) {
             sounds.stalemate_sound.play()
-            Team.staleMate = true
+            this.game.staleMate = true
         }
-        if (areOnlyKingsAlive(this.board) && !Team.staleMate) {
+        if (areOnlyKingsAlive() && !this.game.staleMate) {
             sounds.stalemate_sound.play()
-            Team.staleMate = true
+            this.game.staleMate = true
         }
     }
 
     movePieces() {
-        if (this.draggingIndex === -1 || this.board[this.draggingIndex].x < 0) {
+        if ((this.game.turns % 2 === 1 && this.game.draggingPiece?.color === "black") ||
+            (this.game.turns % 2 === 0 && this.game.draggingPiece?.color === "white") ||
+            (this.game.draggingPiece === null || this.game.draggingPiece.x < 0)) {
             return;
         }
-
         const { x, y } = adjustPiecePositions(this.mousePosition);
 
-        if (this.isWhitesTurn && this.board[this.draggingIndex].color === "black") {
-            return;
-        }
-        if (!this.isWhitesTurn && this.board[this.draggingIndex].color === "white") {
-            return;
-        }
-
-        const pieceName = this.board[this.draggingIndex].name;
-
-        switch (pieceName) {
+        switch (this.game.draggingPiece.name) {
             case Pieces.PAWN:
                 if (!this.isValid(this.handlePawnMovement())) {
                     return;
                 }
-                this.setLastMovedPawnIndex(y);
+                this.candidatePawnForEnPassant(y);
                 break;
 
             case Pieces.ROOK:
                 if (!this.isValid(this.handleRookMovement())) {
                     return;
                 }
-                Rook.hasMoved(this.board, this.draggingIndex);
                 break;
 
             case Pieces.KNIGHT:
@@ -190,34 +207,30 @@ export class PieceHandler {
                 if (!this.isValid(this.handleKingMovement())) {
                     return;
                 }
-                Rook.castleRook(this.board, this.draggingIndex, x);
                 break;
-
-            default:
-                break;
+            default: break;
         }
-
         sounds.move_sound.play();
-        Team.turns++;
-        this.board[this.draggingIndex] = {...this.board[this.draggingIndex],  x: x, y: y };
-        PieceHandler.pieceMoved = true;
+        this.game.turns++;
+        this.game.chessboard[this.game.draggingPiece.index] = {...this.game.draggingPiece, x, y}
+        this.game.pieceMoved = true;
     }
 
-    setLastMovedPawnIndex(y: number){
-        if (this.board[this.draggingIndex].color === "white"){
-            if (this.board[this.draggingIndex].y - y === 2*squareSize) {
-                Pawn.lastMovedPawnIndex = this.draggingIndex
+    candidatePawnForEnPassant(y: number){
+        if (this.game.draggingPiece && this.game.draggingPiece.color === "white"){
+            if (this.game.draggingPiece.y - y === 2*this.game.squareSize) {
+                this.game.potentialEnPassantPawn = {...this.game.draggingPiece}
             }
             else {
-                Pawn.lastMovedPawnIndex = -1
+                this.game.potentialEnPassantPawn = null
             }
         }
-        else {
-            if (y - this.board[this.draggingIndex].y === 2*squareSize) {
-                Pawn.lastMovedPawnIndex = this.draggingIndex
+        else if (this.game.draggingPiece){
+            if (y - this.game.draggingPiece.y === 2*this.game.squareSize) {
+                this.game.potentialEnPassantPawn = {...this.game.draggingPiece}
             }
             else {
-                Pawn.lastMovedPawnIndex = -1
+                this.game.potentialEnPassantPawn = null
             }
         }
     }

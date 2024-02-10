@@ -1,74 +1,63 @@
-import {AllMovesFunction, ColorPiece, Moves, PieceType, Positions, ValidMoves, ValidMovesFunction} from "../../types";
-import {King} from "../King";
-import {getPossibleMovesForAllBlackPieces, getPossibleMovesForAllWhitePieces} from "./AllMoves";
-import {getCurrPos, getIndexAtPosition, isPieceOnSquare} from "../../utils";
-import {canvasSize, squareSize} from "../../exports";
+import {PieceType, Positions, ValidMovesFunction} from "../../Utils/types";
+import {getPieceAtPosition, isPieceOnSquare} from "../../Utils/utilFunctions";
+import Game from "../../ChessBoard/Game";
+
+const game = Game.getInstance();
 
 // Don't let a piece make illegal move if the king is or will be in danger
-export function movementHandler(
-    king: Positions, draggingIndex: number, board: PieceType[], redSquares: Positions[],
-    allMovesFunction: AllMovesFunction, validMovesFunction: ValidMovesFunction
-) {
-    const {currX, currY} = getCurrPos(draggingIndex, board)
-    const index = getIndexAtPosition(currX, currY, board)
+export function movementHandler(king: PieceType, piece: PieceType, allMovesFunction: any, validMovesFunction: ValidMovesFunction) {
     const updatedValidMoves = []
-    for (let move of validMovesFunction(currX, currY, index, board)) {
-        const newBoard = board.map(pos => ({...pos}));
 
-        const potentiallyKilledPiece = getIndexAtPosition(move.x, move.y, newBoard)
-        newBoard[index] = {...newBoard[index], x: move.x, y: move.y}
-        newBoard[potentiallyKilledPiece] = {...newBoard[potentiallyKilledPiece], x: -1000, y: -1000}
+    for (let move of validMovesFunction(piece, game.chessboard)) {
+        let chessboardCopy = game.chessboard.map(pos => ({...pos}));
 
-        const allMoves = allMovesFunction(newBoard)
-        if (!isPieceOnSquare(king.x, king.y, allMoves)) {
-            if (potentiallyKilledPiece !== -1) redSquares.push({x: move.x, y: move.y})
+        const potentiallyKilledPiece = getPieceAtPosition(move.x, move.y)
+        if (potentiallyKilledPiece) {
+            chessboardCopy[potentiallyKilledPiece.index] = {...potentiallyKilledPiece, x: -1000, y: -1000}
+        }
+        chessboardCopy[piece.index] = {...piece, x: move.x, y: move.y};
+
+        if (!isPieceOnSquare(king.x, king.y, allMovesFunction(chessboardCopy))) {
+            if (potentiallyKilledPiece !== null && potentiallyKilledPiece.color !== piece.color) {
+                game.threatenedSquares.push(move)
+            }
             updatedValidMoves.push(move)
         }
     }
     return updatedValidMoves
 }
 
-// Get legal moves for pieces with movementHandler function
-export function pieceMovementHandler
-(piece: ValidMoves, board: PieceType[], draggingIndex: number, redSquares: Positions[]
-) {
-    let whiteKing = {x: board[King.white_king.index].x, y: board[King.white_king.index].y}
-    let blackKing = {x: board[King.black_king.index].x, y: board[King.black_king.index].y}
+export function getValidMovesForRookOrBishop(dx: number, dy: number, piece: PieceType, chessboard: PieceType[]) {
+    let validMoves: Positions[] = [];
+    for (let square = game.squareSize; square < game.canvasSize; square += game.squareSize) {
+        const x = piece?.x + square * dx;
+        const y = piece?.y + square * dy;
+        const pieceOnTheWay = getPieceAtPosition(x, y, chessboard);
 
-    if (board[draggingIndex].color === "white") {
-        return movementHandler(whiteKing, draggingIndex, board, redSquares, getPossibleMovesForAllBlackPieces, piece.validMoves)
-    }
-    else return movementHandler(blackKing, draggingIndex, board, redSquares, getPossibleMovesForAllWhitePieces, piece.validMoves)
-}
-
-export function getValidMovesForRookOrBishop (
-    dx: number, dy: number, currX: number, currY: number, dragIndex: number, board: PieceType[]
-) {
-    let validMoves: Moves[] = [];
-    for (let square = squareSize; square < canvasSize; square += squareSize) {
-        const x = currX + square * dx;
-        const y = currY + square * dy;
-        const index = getIndexAtPosition(x, y, board);
-
-        if (x >= 0 && x <= canvasSize && y >= 0 && y <= canvasSize) {
-            const sameColors = board[index]?.color === board[dragIndex]?.color;
-            if (isPieceOnSquare(x, y, board) && sameColors) break;
-            else if (isPieceOnSquare(x, y, board) && !sameColors) {validMoves.push({x, y, index});break;}
-            validMoves.push({x, y, index});
+        if (x >= 0 && x <= game.canvasSize && y >= 0 && y <= game.canvasSize) {
+            const sameColors = pieceOnTheWay?.color === piece?.color;
+            if (isPieceOnSquare(x, y, chessboard) && sameColors) {
+                break;
+            }
+            else if (isPieceOnSquare(x, y, chessboard) && !sameColors) {
+                validMoves.push({x, y});
+                break;
+            }
+            validMoves.push({x, y});
         }
     }
     return validMoves;
 }
 
 // check if position where the king or the knight can move isn't blocked by same colored piece
-export function getValidMovesForKnightOrKing(moves: Moves[], board: PieceType[], dragIndex: number) {
-    let validMoves: Moves[] = []
-    for (let i = 0; i < moves.length; i++){
-        const move = {x: moves[i].x, y: moves[i].y, index: moves[i].index}
-        if (move.x >= 0 && move.x <= canvasSize && move.y >= 0 && move.y <= canvasSize) {
-            const sameColors = board[move.index]?.color === board[dragIndex].color
-            if (!isPieceOnSquare(move.x, move.y, board)) validMoves.push(move)
-            else if (isPieceOnSquare(move.x, move.y, board) && !sameColors) validMoves.push(move)
+export function getValidMovesForKnightOrKing(piece: PieceType, moves: Positions[], chessboard: PieceType[]) {
+    let validMoves = []
+    for (let move of moves){
+        if (move.x >= 0 && move.x <= game.canvasSize && move.y >= 0 && move.y <= game.canvasSize) {
+            const sameColors = getPieceAtPosition(move.x, move.y, chessboard)?.color === piece.color
+            if (!isPieceOnSquare(move.x, move.y, chessboard) || (isPieceOnSquare(move.x, move.y, chessboard) && !sameColors)) {
+                validMoves.push(move)
+            }
         }
     }
     return validMoves

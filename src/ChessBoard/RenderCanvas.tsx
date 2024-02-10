@@ -1,27 +1,24 @@
 import React, {useEffect} from "react";
-import {Positions} from "../types";
+import {Positions} from "../Utils/types";
 import {Canvas} from "../Canvas/Canvas";
-import {getIndexAtPosition, setupChessBoard} from "../utils";
-import {Pawn} from "../Pieces/Pawn";
+import {getPieceAtPosition} from "../Utils/utilFunctions";
 import {Button} from "../Canvas/Button";
-import {canvasSize, imageSize} from "../exports";
 import {PieceHandler} from "./PieceHandler";
-import {Team} from "./Team";
+import Game from "./Game";
 
 export const RenderCanvas: React.FC = () => {
     const canvasRef = React.createRef<HTMLCanvasElement>();
-    const board = setupChessBoard();
-    let draggingIndex: number = -1
+    const game = Game.getInstance()
+
     let mousePosition = {x: 0, y: 0}
-    let availableMoves: Positions[] = []
-    let threatenedSquares: Positions[] = []
+    let highlightedMoves: Positions[] = []
 
     useEffect(() => {
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
-        window.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mousemove", onMouseMove);
         canvas.addEventListener("mouseup", onMouseUp);
+        window.addEventListener("mousemove", handleMouseMove);
         render(ctx)
 
         return (() => {
@@ -42,15 +39,16 @@ export const RenderCanvas: React.FC = () => {
 
     const onMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const {x, y} = getMousePositions(event)
-        const index = getIndexAtPosition(x, y, board);
-        if (index !== -1 && !Pawn.promoteScreenOn && !Team.whiteWon && !Team.blackWon && !Team.staleMate && !Canvas.menuScreen) {
-            draggingIndex = index
+        const piece = getPieceAtPosition(x, y);
+        if (piece !== null && !game.isPromotionScreenOn && !game.whiteWon && !game.blackWon && !game.staleMate && !game.isMenuScreenOn) {
+            game.draggingPiece = piece
             mousePosition = {x, y};
 
-            let handler = new PieceHandler(mousePosition, board, draggingIndex, threatenedSquares)
-            availableMoves = handler.highlightSquares() as Positions[]
+            let handler = new PieceHandler(mousePosition)
+            highlightedMoves = handler.highlightSquares() as Positions[]
         }
-        const button = new Button(x, y, board)
+
+        const button = new Button(x, y)
 
         button.toggleSoundButton()
         button.promotePawnButtons()
@@ -59,16 +57,16 @@ export const RenderCanvas: React.FC = () => {
     }
 
     const onMouseUp = () => {
-        let handler = new PieceHandler(mousePosition, board, draggingIndex, threatenedSquares)
+        let handler = new PieceHandler(mousePosition)
         handler.movePieces()
         handler.isCheckmateOrStalemate()
 
-        if (PieceHandler.pieceMoved) {
-            availableMoves = []
-            PieceHandler.pieceMoved = false
+        if (game.pieceMoved) {
+            highlightedMoves = []
+            game.pieceMoved = false
         }
-        threatenedSquares = []
-        draggingIndex = -1;
+        game.threatenedSquares = []
+        game.draggingPiece = null
     }
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -77,12 +75,20 @@ export const RenderCanvas: React.FC = () => {
         canvas.style.cursor = "grabbing";
 
         //Can't move pieces outside of canvas
-        const borderX = canvasSize - imageSize
-        const borderY = canvasSize - imageSize
-        if (x >= borderX) x = borderX
-        if (x <= 0) x = 0
-        if (y <= 0) y = 0
-        if (y >= borderY) y = borderY
+        const borderX = game.canvasSize - game.imageSize
+        const borderY = game.canvasSize - game.imageSize
+        if (x >= borderX) {
+            x = borderX
+        }
+        if (x <= 0) {
+            x = 0
+        }
+        if (y <= 0) {
+            y = 0
+        }
+        if (y >= borderY) {
+            y = borderY
+        }
         mousePosition = {x, y};
     }
 
@@ -91,12 +97,12 @@ export const RenderCanvas: React.FC = () => {
     }
 
     const render = (ctx: CanvasRenderingContext2D) => {
-        const canvas = new Canvas(ctx, mousePosition, draggingIndex, board)
+        const canvas = new Canvas(ctx, mousePosition)
 
         canvas.clearCanvas()
         canvas.drawBoardBackground()
-        canvas.drawHighlightingCircles(availableMoves)
-        canvas.drawThreatenedSquares(threatenedSquares)
+        canvas.drawHighlightingCircles(highlightedMoves)
+        canvas.drawThreatenedSquares()
         canvas.drawPieces()
         canvas.drawCoordinates()
         canvas.drawGameOverScreen()
@@ -112,8 +118,8 @@ export const RenderCanvas: React.FC = () => {
         <canvas
             ref={canvasRef}
             className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            height={canvasSize}
-            width={canvasSize}
+            height={game.canvasSize}
+            width={game.canvasSize}
             onMouseDown={onMouseDown}
         ></canvas>
     )
