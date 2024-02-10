@@ -1,54 +1,50 @@
-import {PieceType} from "../types";
-import {getIndexAtPosition} from "../utils";
+import {PieceType} from "../Utils/types";
 import {getValidMovesForKnightOrKing} from "./moves/Movements";
-import {squareSize} from "../exports";
+import Game from "../ChessBoard/Game";
 
 export class Knight{
-    //7 and 27 is for white knights and 4 and 24 is for black knights
-    Indexes = [7, 27, 4, 24]
+    private size: Game;
 
-    validMoves(currX: number, currY: number, index: number, board: PieceType[]) {
+    constructor() {
+        this.size = Game.getInstance();
+    }
+
+    validMoves(piece: PieceType, chessboard: PieceType[]) {
+        if (!piece) return []
+        const {x, y} = piece
         const upLeft = {
-            x: currX - squareSize, y: currY + 2 * squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY + 2 * squareSize, board)
+            x: x - this.size.squareSize, y: y + 2 * this.size.squareSize,
         }
 
         const upRight = {
-            x: currX + squareSize, y: currY + 2 * squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY + 2 * squareSize, board)
+            x: x + this.size.squareSize, y: y + 2 * this.size.squareSize,
         }
 
         const leftUp = {
-            x: currX - 2 * squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX - 2 * squareSize, currY + squareSize, board)
+            x: x - 2 * this.size.squareSize, y: y + this.size.squareSize,
         }
 
         const leftDown = {
-            x: currX - 2 * squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX - 2 * squareSize, currY - squareSize, board)
+            x: x - 2 * this.size.squareSize, y: y - this.size.squareSize,
         }
 
         const downLeft = {
-            x: currX - squareSize, y: currY - 2 * squareSize,
-            index: getIndexAtPosition(currX - squareSize, currY - 2 * squareSize, board)
+            x: x - this.size.squareSize, y: y - 2 * this.size.squareSize,
         }
 
         const downRight = {
-            x: currX + squareSize, y: currY - 2 * squareSize,
-            index: getIndexAtPosition(currX + squareSize, currY - 2 * squareSize, board)
+            x: x + this.size.squareSize, y: y - 2 * this.size.squareSize,
         }
 
         const rightDown = {
-            x: currX + 2 * squareSize, y: currY - squareSize,
-            index: getIndexAtPosition(currX + 2 * squareSize, currY - squareSize, board)
+            x: x + 2 * this.size.squareSize, y: y - this.size.squareSize,
         }
 
         const rightUp = {
-            x: currX + 2 * squareSize, y: currY + squareSize,
-            index: getIndexAtPosition(currX + 2 * squareSize, currY + squareSize, board)
+            x: x + 2 * this.size.squareSize, y: y + this.size.squareSize,
         }
 
         return getValidMovesForKnightOrKing(
-            [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp], board, index)
+            piece, [upLeft, upRight, leftUp, leftDown, downLeft, downRight, rightDown, rightUp], chessboard)
     }
 }
