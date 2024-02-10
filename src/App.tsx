@@ -1,10 +1,11 @@
 import React from 'react';
-import{ ChessBoard } from "./ChessBoard/ChessBoard"
+import "./index.css"
+import {RenderCanvas} from "./ChessBoard/RenderCanvas";
 
 function App() {
   return (
       <div>
-          <ChessBoard/>
+          <RenderCanvas/>
       </div>
     )
 }

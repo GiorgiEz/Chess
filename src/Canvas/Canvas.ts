@@ -15,7 +15,6 @@ export class Canvas{
 
     constructor(
         private ctx: CanvasRenderingContext2D,
-        private mousePosition: Positions,
     ) {
         this.game = Game.getInstance();
     }
@@ -26,7 +25,7 @@ export class Canvas{
 
     drawPlayButton() {
         if (this.game.isMenuScreenOn) {
-            const { x, y } = this.mousePosition;
+            const { x, y } = this.game.mousePosition;
 
             const w = 2*this.game.squareSize + this.game.squareSize/2
             const h = this.game.squareSize
@@ -49,9 +48,9 @@ export class Canvas{
         }
     }
 
-    drawHighlightingCircles(highlightedSquares: Positions[]) {
-        if (!highlightedSquares) return
-        for (let pos of highlightedSquares) {
+    drawHighlightingCircles() {
+        if (!this.game.highlightedMoves) return
+        for (let pos of this.game.highlightedMoves) {
             const gradient = this.ctx.createRadialGradient(pos.x + 25, pos.y + 25,
                 0, pos.x + 25, pos.y + 25, this.game.squareSize / 4);
             gradient.addColorStop(0, "#e0eee7");
@@ -109,8 +108,8 @@ export class Canvas{
                 let {x, y} = piece;
                 // If the piece is being dragged, draw it at the current mouse position
                 if (piece === this.game.draggingPiece) {
-                    x = this.mousePosition.x - this.game.squareSize / 3;
-                    y = this.mousePosition.y - this.game.squareSize / 3;
+                    x = this.game.mousePosition.x - this.game.squareSize / 3;
+                    y = this.game.mousePosition.y - this.game.squareSize / 3;
                 }
                 this.ctx.drawImage(image, x, y, this.game.imageSize, this.game.imageSize);
             }
@@ -128,7 +127,7 @@ export class Canvas{
     }
 
     hoverEffectForPromotionScreen(){
-        let {x,y} = this.mousePosition
+        let {x,y} = this.game.mousePosition
         if (this.game.isPromotionScreenOn){
             const size = this.game.canvasSize/4 - this.game.shiftImage/4
             const y_min = 3*this.game.squareSize
@@ -187,7 +186,7 @@ export class Canvas{
     drawGameOverScreen(){
         if (this.game.whiteWon || this.game.blackWon || this.game.staleMate) {
             this.ctx.save();
-            let {x,y} = this.mousePosition
+            let {x,y} = this.game.mousePosition
 
             this.ctx.globalAlpha = 0.5;
             this.ctx.fillStyle = "#646161";
@@ -239,7 +238,7 @@ export class Canvas{
 
     drawSoundButton(){
         if (this.game.isMenuScreenOn || this.game.whiteWon || this.game.blackWon || this.game.staleMate){
-            let {x,y} = this.mousePosition
+            let {x,y} = this.game.mousePosition
             if (x > 0 && x < this.game.squareSize && y > 0 && y < this.game.squareSize && this.game.isMenuScreenOn) {
                 this.ctx.beginPath();
                 this.ctx.arc(this.game.squareSize/2, this.game.squareSize/2,

@@ -1,6 +1,6 @@
 import {PieceType, Positions} from "../Utils/types";
 import {pieceImages} from "../Utils/exports";
-import {createImage} from "../Utils/utilFunctions";
+import {createImage, getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
 
 class Game {
     private static instance: Game | null = null;
@@ -27,6 +27,9 @@ class Game {
 
     public chessboard: PieceType[] = []
     public threatenedSquares: Positions[] = []
+    public highlightedMoves: Positions[] = []
+
+    public mousePosition = {x: 0, y: 0}
 
     private constructor() {
         // this.canvasSize = window.innerWidth > 1000 ? window.innerWidth / 2.4 : window.innerWidth / 1.2;
@@ -43,6 +46,41 @@ class Game {
             Game.instance = new Game();
         }
         return Game.instance;
+    }
+
+    getValidMovesForKnightOrKing(piece: PieceType, moves: Positions[], chessboard: PieceType[]) {
+        let validMoves = []
+        for (let move of moves){
+            if (move.x >= 0 && move.x <= this.canvasSize && move.y >= 0 && move.y <= this.canvasSize) {
+                const sameColors = getPieceAtPosition(move.x, move.y, chessboard)?.color === piece.color
+                if (!isPieceOnSquare(move.x, move.y, chessboard) || (isPieceOnSquare(move.x, move.y, chessboard) && !sameColors)) {
+                    validMoves.push(move)
+                }
+            }
+        }
+        return validMoves
+    }
+
+    getValidMovesForRookOrBishop(dx: number, dy: number, piece: PieceType, chessboard: PieceType[]) {
+        let validMoves: Positions[] = [];
+        for (let square = this.squareSize; square < this.canvasSize; square += this.squareSize) {
+            const x = piece?.x + square * dx;
+            const y = piece?.y + square * dy;
+            const pieceOnTheWay = getPieceAtPosition(x, y, chessboard);
+
+            if (x >= 0 && x <= this.canvasSize && y >= 0 && y <= this.canvasSize) {
+                const sameColors = pieceOnTheWay?.color === piece?.color;
+                if (isPieceOnSquare(x, y, chessboard) && sameColors) {
+                    break;
+                }
+                else if (isPieceOnSquare(x, y, chessboard) && !sameColors) {
+                    validMoves.push({x, y});
+                    break;
+                }
+                validMoves.push({x, y});
+            }
+        }
+        return validMoves;
     }
 
     setupChessBoard(){
