@@ -1,6 +1,6 @@
-import {Positions} from "../Utils/types";
+import {PieceType, Positions} from "../Utils/types";
 import {
-    adjustPiecePositions, areOnlyKingsAlive, comparePositions, getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
+    adjustPiecePositions, areOnlyKingsAlive, comparePositions, getPieceAtPosition} from "../Utils/utilFunctions";
 import {Pawn} from "../Pieces/Pawn";
 import {Pieces, sounds} from "../Utils/exports";
 import {King} from "../Pieces/King";
@@ -11,7 +11,7 @@ import {Knight} from "../Pieces/Knight";
 import {FilterAllPotentialMoves, filterMovesByCheckingKingSafety} from "../Pieces/ValidMoves";
 import Game from "./Game";
 
-export class PieceHandler {
+export class GameManager {
     private game: Game;
 
     constructor() {
@@ -53,25 +53,8 @@ export class PieceHandler {
         let {x, y} = adjustPiecePositions(this.game.mousePosition)
         for (let move of validMoves) {
             if (x === move.x && y === move.y) {
-                this.killPiece({x: move.x, y: move.y});
+                this.killPiece(move)
                 return true
-            }
-        }
-        return false
-    }
-
-    isEnPassant(pos: Positions){
-        if (this.game.draggingPiece && this.game.draggingPiece!.name === Pieces.PAWN && this.game.potentialEnPassantPawn
-            && pos.x - this.game.potentialEnPassantPawn.x === 0)
-        {
-            if (this.game.draggingPiece!.color === "white") {
-                if (this.game.potentialEnPassantPawn.y - pos.y === this.game.squareSize) {
-                    return true
-                }
-            } else {
-                if (pos.y - this.game.potentialEnPassantPawn.y === this.game.squareSize) {
-                    return true
-                }
             }
         }
         return false
@@ -80,20 +63,17 @@ export class PieceHandler {
     killPiece(pos: Positions) {
         let killedPiece = getPieceAtPosition(pos.x, pos.y)
 
-        if (killedPiece && isPieceOnSquare(pos.x, pos.y, this.game.chessboard)) {
-            this.game.chessboard[killedPiece.index] = {...killedPiece, x: -1000, y: -1000}
-            sounds.capture_sound.play()
-        }
-        if (this.isEnPassant(pos) && this.game.potentialEnPassantPawn){
-            this.game.chessboard[this.game.potentialEnPassantPawn.index] = {...this.game.potentialEnPassantPawn, x: -1000, y: -1000}
+        if (killedPiece || this.killEnPassantPawn(pos)) {
+            const piece = killedPiece ? killedPiece : this.game.potentialEnPassantPawn!
+            this.game.chessboard[piece.index] = {...piece, x: -1000, y: -1000}
             sounds.capture_sound.play()
         }
     }
 
-    highlightSquares() {
+    highlightSquares(): Positions[] {
         if ((this.game.turns % 2 === 1 && this.game.draggingPiece!.color === "black") ||
             (this.game.turns % 2 === 0 && this.game.draggingPiece!.color === "white") || !this.game.draggingPiece) {
-            return;
+            return [];
         }
         let highlightedSquares: Positions[] = []
 
@@ -155,19 +135,27 @@ export class PieceHandler {
             (this.game.draggingPiece === null || this.game.draggingPiece.x < 0)) {
             return;
         }
-        const { x, y } = adjustPiecePositions(this.game.mousePosition);
+        const { x, y } = adjustPiecePositions(this.game.mousePosition)
 
         switch (this.game.draggingPiece.name) {
             case Pieces.PAWN:
                 if (!this.isValid(this.handlePawnMovement())) {
                     return;
                 }
-                this.candidatePawnForEnPassant(y);
                 break;
 
             case Pieces.ROOK:
                 if (!this.isValid(this.handleRookMovement())) {
                     return;
+                }
+                if (this.game.draggingPiece.index === Rook.getLeftWhiteRook(this.game.chessboard).index){
+                    Rook.hasLeftWhiteRookMoved = true
+                } else if (this.game.draggingPiece.index === Rook.getRightWhiteRook(this.game.chessboard).index){
+                    Rook.hasRightWhiteRookMoved = true
+                } else if (this.game.draggingPiece.index === Rook.getLeftBlackRook(this.game.chessboard).index){
+                    Rook.hasLeftBlackRookMoved = true
+                } else if (this.game.draggingPiece.index === Rook.getRightBlackRook(this.game.chessboard).index){
+                    Rook.hasRightBlackRookMoved = true
                 }
                 break;
 
@@ -193,31 +181,52 @@ export class PieceHandler {
                 if (!this.isValid(this.handleKingMovement())) {
                     return;
                 }
+                this.moveRookIfKingCastled(this.game.draggingPiece, x)
+                if (this.game.draggingPiece.index === King.getWhiteKing(this.game.chessboard).index){
+                    King.hasWhiteKingMoved = true
+                } else {
+                    King.hasBlackKingMoved = true
+                }
                 break;
-            default: break;
+
+            default:
+                break;
         }
+
         sounds.move_sound.play();
         this.game.turns++;
         this.game.chessboard[this.game.draggingPiece.index] = {...this.game.draggingPiece, x, y}
         this.game.pieceMoved = true;
+        this.game.potentialEnPassantPawn = this.isPotentialEnPassantPawn(y) ? this.game.draggingPiece : null
     }
 
-    candidatePawnForEnPassant(y: number){
-        if (this.game.draggingPiece && this.game.draggingPiece.color === "white"){
-            if (this.game.draggingPiece.y - y === 2*this.game.squareSize) {
-                this.game.potentialEnPassantPawn = {...this.game.draggingPiece}
+    moveRookIfKingCastled(king: PieceType, x: number){
+        if(king.color === "white"){
+            if (x - king.x === this.game.squareSize * 2){
+                const rook = Rook.getRightWhiteRook(this.game.chessboard)
+                this.game.chessboard[rook.index] = {...rook, x: rook.x - 2 * this.game.squareSize}
+            } else if (king.x - x === this.game.squareSize * 2){
+                const rook = Rook.getLeftWhiteRook(this.game.chessboard)
+                this.game.chessboard[rook.index] = {...rook, x: rook.x + 3 * this.game.squareSize}
             }
-            else {
-                this.game.potentialEnPassantPawn = null
+        } else {
+            if (x - king.x === this.game.squareSize * 2){
+                const rook = Rook.getRightBlackRook(this.game.chessboard)
+                this.game.chessboard[rook.index] = {...rook, x: rook.x - 2 * this.game.squareSize}
+            } else if (king.x - x === this.game.squareSize * 2){
+                const rook = Rook.getLeftBlackRook(this.game.chessboard)
+                this.game.chessboard[rook.index] = {...rook, x: rook.x + 3 * this.game.squareSize}
             }
         }
-        else if (this.game.draggingPiece){
-            if (y - this.game.draggingPiece.y === 2*this.game.squareSize) {
-                this.game.potentialEnPassantPawn = {...this.game.draggingPiece}
-            }
-            else {
-                this.game.potentialEnPassantPawn = null
-            }
-        }
+    }
+
+    isPotentialEnPassantPawn(y: number){
+        return this.game.draggingPiece!.name === Pieces.PAWN && Math.abs(this.game.draggingPiece!.y - y) === 2 * this.game.squareSize
+    }
+
+    killEnPassantPawn(pos: Positions){
+        return this.game.draggingPiece!.name === Pieces.PAWN
+            && Math.abs(pos.x - this.game.draggingPiece!.x) === this.game.squareSize
+            && Math.abs(pos.y - this.game.draggingPiece!.y) === this.game.squareSize
     }
 }

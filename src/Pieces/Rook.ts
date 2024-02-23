@@ -1,6 +1,6 @@
 import {PieceType, Positions} from "../Utils/types";
 import {Pieces} from "../Utils/exports";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 export class Rook{
     private game: Game;

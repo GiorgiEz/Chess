@@ -1,9 +1,8 @@
 import React, {useEffect} from "react";
-import {Positions} from "../Utils/types";
 import {Canvas} from "../Canvas/Canvas";
 import {getPieceAtPosition} from "../Utils/utilFunctions";
 import {Button} from "../Canvas/Button";
-import {PieceHandler} from "./PieceHandler";
+import {GameManager} from "./GameManager";
 import Game from "./Game";
 
 export const RenderCanvas: React.FC = () => {
@@ -41,8 +40,7 @@ export const RenderCanvas: React.FC = () => {
             game.draggingPiece = piece
             game.mousePosition = {x, y};
 
-            let handler = new PieceHandler()
-            game.highlightedMoves = handler.highlightSquares() as Positions[]
+            game.highlightedMoves =  new GameManager().highlightSquares()
         }
 
         const button = new Button(x, y)
@@ -54,7 +52,7 @@ export const RenderCanvas: React.FC = () => {
     }
 
     const onMouseUp = () => {
-        let handler = new PieceHandler()
+        let handler = new GameManager()
         handler.movePieces()
         handler.isCheckmateOrStalemate()
 
@@ -108,7 +106,7 @@ export const RenderCanvas: React.FC = () => {
         canvas.drawSoundButton()
         canvas.drawPlayButton()
 
-        requestAnimationFrame(() => render(ctx));
+        requestAnimationFrame(() => render(ctx))
     }
 
     return (

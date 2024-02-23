@@ -2,7 +2,7 @@ import {promotePawnTo} from "../Utils/utilFunctions";
 import {King} from "../Pieces/King";
 import {Rook} from "../Pieces/Rook";
 import {pieceImages, Pieces, sounds} from "../Utils/exports";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 export class Button {
     private game: Game;

@@ -1,5 +1,5 @@
 import {PieceType, Positions} from "../Utils/types";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 export class Bishop{
     private game: Game;

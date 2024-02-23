@@ -1,6 +1,6 @@
 import React from 'react';
 import "./index.css"
-import {RenderCanvas} from "./ChessBoard/RenderCanvas";
+import {RenderCanvas} from "./Game/RenderCanvas";
 
 function App() {
   return (

@@ -6,7 +6,7 @@ import {Rook} from "./Rook";
 import {Knight} from "./Knight";
 import {Queen} from "./Queen";
 import {Pieces} from "../Utils/exports";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 import {getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
 
 const game = Game.getInstance();
@@ -38,7 +38,7 @@ export function filterMovesByCheckingKingSafety(piece: PieceType, validMovesFunc
     return updatedValidMoves
 }
 
-export function allPotentialMoves(chessboard: PieceType[] = game.chessboard){
+export function allPotentialMoves(chessboard: PieceType[] = game.chessboard, kingCall = false){
     const whiteValidMoves: Positions[] = []
     const blackValidMoves: Positions[] = []
 
@@ -46,6 +46,7 @@ export function allPotentialMoves(chessboard: PieceType[] = game.chessboard){
         let moves: Positions[] = [];
         switch (piece.name) {
             case Pieces.KING:
+                if (kingCall) break
                 const king = new King()
                 moves = king.validMoves(piece, chessboard)
                 break
@@ -88,6 +89,7 @@ export function FilterAllPotentialMoves(chessboard = game.chessboard){
 
     for (let piece of chessboard) {
         let moves: Positions[] = [];
+
         switch (piece.name) {
             case Pieces.KING:
                 const king = new King()

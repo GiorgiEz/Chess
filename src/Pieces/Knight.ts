@@ -1,5 +1,5 @@
 import {PieceType} from "../Utils/types";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 export class Knight{
     private game: Game;
