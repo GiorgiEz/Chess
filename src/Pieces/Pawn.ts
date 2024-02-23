@@ -1,6 +1,6 @@
 import {PieceType, Positions} from "../Utils/types";
-import {comparePositions, getPieceAtPosition, isPieceOnSquare,} from "../Utils/utilFunctions"
-import Game from "../ChessBoard/Game";
+import {getPieceAtPosition, isPieceOnSquare,} from "../Utils/utilFunctions"
+import Game from "../Game/Game";
 
 export class Pawn {
     private readonly game: Game;
@@ -14,7 +14,7 @@ export class Pawn {
         const isWhite = piece.color === "white"
         const validMoves = []
 
-        const topLeft: Positions = isWhite ?
+        const topLeft = isWhite ?
             {x: x - this.game.squareSize, y: y - this.game.squareSize} :
             {x: x - this.game.squareSize, y: y + this.game.squareSize}
 
@@ -27,29 +27,8 @@ export class Pawn {
             {x: x, y: y + this.game.squareSize }
 
         const twoSquaresInFront = isWhite ?
-            {x: x, y: y - this.game.squareSize*2 } :
-            {x: x, y: y + this.game.squareSize*2 }
-
-        //Check for En Passant moves
-        if (this.game.potentialEnPassantPawn !== null){
-            const pieceOnSide = getPieceAtPosition(x-this.game.squareSize, y, chessboard)
-            if ((this.game.draggingPiece?.color === "white" && this.game.potentialEnPassantPawn.color === "black") ||
-                (this.game.draggingPiece?.color === "black" && this.game.potentialEnPassantPawn.color === "white")) {
-                if (pieceOnSide && comparePositions(pieceOnSide, this.game.potentialEnPassantPawn)) {
-                    validMoves.push(topLeft)
-                }
-            }
-        }
-
-        if (this.game.potentialEnPassantPawn !== null){
-            const pieceOnSide = getPieceAtPosition(x+this.game.squareSize, y, chessboard)
-            if ((this.game.draggingPiece?.color === "white" && this.game.potentialEnPassantPawn.color === "black") ||
-                (this.game.draggingPiece?.color === "black" && this.game.potentialEnPassantPawn.color === "white")) {
-                if (pieceOnSide && comparePositions(pieceOnSide, this.game.potentialEnPassantPawn)) {
-                    validMoves.push(topRight)
-                }
-            }
-        }
+            {x: x, y: y - this.game.squareSize * 2 } :
+            {x: x, y: y + this.game.squareSize * 2 }
 
         if (x >= 0 && x <= this.game.canvasSize && y >= 0 && y <= this.game.canvasSize) {
             const pieceOnTopLeft = getPieceAtPosition(topLeft.x, topLeft.y, chessboard)
@@ -66,7 +45,7 @@ export class Pawn {
                 validMoves.push(inFront)
             }
 
-            // Check if pawn hasn't moved
+            // Check if pawn can move two squares in front
             if (isWhite && y === this.game.canvasSize - 2 * this.game.squareSize + this.game.shiftImage){
                 if(!isPieceOnSquare(inFront.x, inFront.y, chessboard) &&
                     !isPieceOnSquare(twoSquaresInFront.x, twoSquaresInFront.y, chessboard)){
@@ -76,6 +55,21 @@ export class Pawn {
                 && !isPieceOnSquare(inFront!.x, inFront!.y, chessboard)
                 && !isPieceOnSquare(twoSquaresInFront.x, twoSquaresInFront.y, chessboard)) {
                 validMoves.push(twoSquaresInFront)
+            }
+
+            //Check for En Passant moves
+            const pieceOnLeftSide = getPieceAtPosition(x - this.game.squareSize, y, chessboard)
+            const pieceOnRightSide = getPieceAtPosition(x + this.game.squareSize, y, chessboard)
+
+            if (this.game.potentialEnPassantPawn) {
+                if (pieceOnLeftSide && this.game.potentialEnPassantPawn.index === pieceOnLeftSide.index &&
+                    pieceOnLeftSide.color !== this.game.draggingPiece?.color) {
+                    validMoves.push(topLeft)
+                }
+                if (pieceOnRightSide && this.game.potentialEnPassantPawn.index === pieceOnRightSide.index &&
+                    pieceOnRightSide.color !== this.game.draggingPiece?.color) {
+                    validMoves.push(topRight)
+                }
             }
         }
         return validMoves

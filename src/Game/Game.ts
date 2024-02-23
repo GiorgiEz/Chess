@@ -1,5 +1,5 @@
 import {PieceType, Positions} from "../Utils/types";
-import {pieceImages} from "../Utils/exports";
+import {pieceImages, Pieces} from "../Utils/exports";
 import {createImage, getPieceAtPosition, isPieceOnSquare} from "../Utils/utilFunctions";
 
 class Game {
@@ -94,7 +94,8 @@ class Game {
             pieceImages.white_rook, pieceImages.white_knight, pieceImages.white_bishop, pieceImages.white_queen,
             pieceImages.white_king, pieceImages.white_bishop, pieceImages.white_knight, pieceImages.white_rook
         ]
-        const namesArray = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
+        const namesArray = [Pieces.ROOK, Pieces.KNIGHT, Pieces.BISHOP, Pieces.QUEEN,
+            Pieces.KING, Pieces.BISHOP, Pieces.KNIGHT, Pieces.ROOK]
 
         let index = 0
         for (let pos = this.shiftImage, i = 0; i < blackPieces.length; pos += this.squareSize, i++) {
@@ -102,10 +103,10 @@ class Game {
                 y: this.shiftImage, color: "black", name: namesArray[i], index: i + index++})
 
             chessboard.push({image: createImage(pieceImages.black_pawn), x: pos,
-                y: this.squareSize+this.shiftImage, color: "black", name:"pawn", index: i + index++})
+                y: this.squareSize+this.shiftImage, color: "black", name: Pieces.PAWN, index: i + index++})
 
             chessboard.push({image: createImage(pieceImages.white_pawn), x: pos,
-                y: this.canvasSize - 2*this.squareSize + this.shiftImage, color: "white", name:"pawn", index: i + index++})
+                y: this.canvasSize - 2*this.squareSize + this.shiftImage, color: "white", name: Pieces.PAWN, index: i + index++})
 
             chessboard.push({image: createImage(whitePieces[i]), x: pos,
                 y: this.canvasSize - this.squareSize + this.shiftImage, color: "white", name: namesArray[i], index: i + index})

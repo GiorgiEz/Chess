@@ -1,6 +1,6 @@
-import {Positions, PieceType} from "./types";
+import {Positions} from "./types";
 import {Pieces} from "./exports";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 const game = Game.getInstance();
 
@@ -8,8 +8,12 @@ export function adjustPiecePositions(mousePos: Positions) {
     let {x, y} = mousePos
     let nextSquare = game.squareSize;
     for (let square = 0; square !== game.canvasSize; square += game.squareSize) {
-        if (x >= square && x <= nextSquare) x = square + game.shiftImage;
-        if (y < nextSquare && y >= square) y = square + game.shiftImage;
+        if (x >= square && x <= nextSquare){
+            x = square + game.shiftImage;
+        }
+        if (y < nextSquare && y >= square){
+            y = square + game.shiftImage;
+        }
         nextSquare += game.squareSize;
     }
     return {x, y}
@@ -25,7 +29,7 @@ export function getPieceAtPosition(x: number, y: number, chessboard = game.chess
     return null;
 }
 
-export function isPieceOnSquare(x: number, y: number, chessboard: Positions[]) {
+export function isPieceOnSquare(x: number, y: number, chessboard: Positions[] = game.chessboard) {
     return chessboard.some((piece) => piece.x === x && piece.y === y);
 }
 

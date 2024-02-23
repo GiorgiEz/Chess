@@ -1,7 +1,7 @@
 import {Positions} from "../Utils/types";
-import {createImage, getPieceAtPosition} from "../Utils/utilFunctions";
+import {comparePositions, createImage, getPieceAtPosition} from "../Utils/utilFunctions";
 import {pieceImages, buttonImages, Pieces} from "../Utils/exports";
-import Game from "../ChessBoard/Game";
+import Game from "../Game/Game";
 
 const canvasImages = {
     restart_image: createImage(buttonImages.restart_button),
@@ -34,7 +34,7 @@ export class Canvas{
             const start_y = this.game.canvasSize/2 - h/2
 
 
-            this.ctx.fillStyle = "#1A233B";
+            this.ctx.fillStyle = "#808080";
             this.ctx.fillRect(start_x, start_y, w, h);
 
             this.ctx.fillStyle = "#FFFFFF";
@@ -107,7 +107,7 @@ export class Canvas{
                 const image = piece.image;
                 let {x, y} = piece;
                 // If the piece is being dragged, draw it at the current mouse position
-                if (piece === this.game.draggingPiece) {
+                if (this.game.draggingPiece && piece.index === this.game.draggingPiece.index) {
                     x = this.game.mousePosition.x - this.game.squareSize / 3;
                     y = this.game.mousePosition.y - this.game.squareSize / 3;
                 }
