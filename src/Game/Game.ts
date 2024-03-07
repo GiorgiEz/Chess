@@ -32,13 +32,12 @@ class Game {
     public mousePosition = {x: 0, y: 0}
 
     private constructor() {
-        // this.canvasSize = window.innerWidth > 1000 ? window.innerWidth / 2.4 : window.innerWidth / 1.2;
-        this.canvasSize = 600
+        const minDimension = (Math.min(window.innerWidth, window.innerHeight) / 1.6)
+        this.canvasSize = minDimension > 700 ? 900 : minDimension > 400 ? 600 : 300
         this.squareSize = this.canvasSize / 8;
         this.imageSize = (this.squareSize * 2) / 3;
         this.shiftImage = (this.squareSize - this.imageSize) / 2;
         this.chessboard = this.setupChessBoard()
-        console.log("Game class instance has been created")
     }
 
     public static getInstance(): Game {

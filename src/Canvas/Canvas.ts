@@ -1,5 +1,5 @@
 import {Positions} from "../Utils/types";
-import {comparePositions, createImage, getPieceAtPosition} from "../Utils/utilFunctions";
+import {createImage, getPieceAtPosition} from "../Utils/utilFunctions";
 import {pieceImages, buttonImages, Pieces} from "../Utils/exports";
 import Game from "../Game/Game";
 

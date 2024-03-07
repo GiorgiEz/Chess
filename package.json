@@ -1,6 +1,6 @@
 {
   "homepage": "http://GiorgiEz.github.io/Chess",
-  "name": "chess-game",
+  "name": "Chess",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
