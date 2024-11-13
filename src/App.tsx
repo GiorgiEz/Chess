@@ -4,7 +4,7 @@ import {RenderCanvas} from "./Game/RenderCanvas";
 
 function App() {
   return (
-      <div>
+      <div className='bg-gray-800 h-screen'>
           <RenderCanvas/>
       </div>
     )

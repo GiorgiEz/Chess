@@ -112,7 +112,7 @@ export const RenderCanvas: React.FC = () => {
     return (
         <canvas
             ref={canvasRef}
-            className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 border-gray-400"
             height={game.canvasSize}
             width={game.canvasSize}
             onMouseDown={onMouseDown}
